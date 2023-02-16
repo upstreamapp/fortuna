@@ -25,7 +25,7 @@ if-deploying: &if-deploying
     - equal: [deploy-mainnet, << pipeline.parameters.run-workflow >>]
 
 github-ssh-fingerprints: &github-ssh-fingerprints
-  - '3a:c2:65:29:f1:55:e5:59:57:4c:e7:a7:b3:3f:34:4a'
+  - 'c2:2d:89:7b:0b:f7:5a:d3:b7:1e:a5:c3:3d:2f:ca:21'
 
 env-contexts: &env-contexts
   - NPM
