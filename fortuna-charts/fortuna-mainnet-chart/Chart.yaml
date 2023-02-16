@@ -1,0 +1,9 @@
+apiVersion: v2
+name: fortuna-mainnet-chart
+description: A Helm chart for Fortuna mainnet
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+- email: hello@upstreamapp.com
+  name: upstreamapp

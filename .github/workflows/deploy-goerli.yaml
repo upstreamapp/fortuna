@@ -1,0 +1,136 @@
+name: Build & Deploy Goerli
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Branch or SHA to Deploy'
+        required: true
+        default: 'main'
+
+env:
+  AWS_DEFAULT_REGION: us-west-2
+
+jobs:
+  build:
+    name: Build Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@main
+        with:
+          ref: ${{ github.event.inputs.sha }}
+
+      - name: setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.17.0
+
+      - name: Cache node modules
+        uses: actions/cache@v1
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-build-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-build-${{ env.cache-name }}-
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+
+      - name: setup doppler
+        uses: dopplerhq/cli-action@v1
+
+      - name: Pass all secrets to next steps
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_PRD_SECRET_TOKEN }}
+        run: doppler secrets download --no-file --format=docker >> $GITHUB_ENV;
+
+      - name: Install Dependencies
+        run: NODE_ENV=development npm install
+
+      - name: Run linter test
+        run: npm run lint
+
+      - name: Build app
+        run: NODE_OPTIONS=--max-old-space-size=8192 npm run build
+
+      - name: Build Docker image
+        env:
+          ECR_REPO: 706936537074.dkr.ecr.us-west-2.amazonaws.com/upstreamapp/fortuna
+        run: docker build -t $ECR_REPO:$(echo ${{ github.sha }} | head -c7) .
+
+      - name: Login to ECR
+        env:
+          AWS_DEFAULT_REGION: us-west-2
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: aws ecr get-login-password | docker login --username AWS --password-stdin 706936537074.dkr.ecr.us-west-2.amazonaws.com
+
+      - name: Push to ECR
+        env:
+          ECR_REPO: 706936537074.dkr.ecr.us-west-2.amazonaws.com/upstreamapp/fortuna
+        run: docker push ${ECR_REPO}:$(echo $GITHUB_SHA | head -c7)
+
+      - name: Create new k8s deployment and migration files
+        run: |
+          SHORTHASH=$(echo $GITHUB_SHA | head -c7)
+          sed "s/~HASH~/${SHORTHASH}/g" deployments/goerli-deployment.yaml > deployments/goerli-dep-$(echo $GITHUB_SHA | head -c7).yaml
+          sed "s/~HASH~/${SHORTHASH}/g" deployments/goerli-migration-job.yaml > deployments/goerli-migration-$(echo $GITHUB_SHA | head -c7).yaml
+
+      - name: Install wireguard
+        run: sudo apt-get install wireguard
+
+      - name: Create wireguard tunnel configuration
+        run: |
+          sed -i -e "s@{{CTX_WIREGUARD_PRIVATE_KEY}}@${{ secrets.CTX_WIREGUARD_PRIVATE_KEY }}@" $GITHUB_WORKSPACE/.github/workflows/tunnel.conf
+          sed -i -e "s@{{CTX_WIREGUARD_SERVER_PUBLIC_KEY}}@${{ secrets.CTX_WIREGUARD_SERVER_PUBLIC_KEY }}@" $GITHUB_WORKSPACE/.github/workflows/tunnel.conf
+          sed -i -e "s@{{CTX_WIREGUARD_SERVER_ENDPOINT}}@${{ secrets.CTX_WIREGUARD_SERVER_ENDPOINT }}@" $GITHUB_WORKSPACE/.github/workflows/tunnel.conf
+          sudo cp $GITHUB_WORKSPACE/.github/workflows/tunnel.conf /etc/wireguard/
+
+      - name: Start wireguard
+        run: wg-quick up tunnel
+
+      - name: Setup local k8s + aws
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+        run: |
+          echo $KUBE_CONFIG_DATA | base64 -d > $GITHUB_WORKSPACE/kubeconfig
+
+          sudo apt-get update && sudo apt-get install -y apt-transport-https gnupg2 curl
+          curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+          echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list
+          sudo apt-get update
+
+          curl -LO https://dl.k8s.io/release/v1.22.0/bin/linux/amd64/kubectl
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          kubectl version --client
+
+      - name: Run DB Migration
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-2
+        run: |
+          kubectl --kubeconfig=$GITHUB_WORKSPACE/kubeconfig apply -f deployments/goerli-migration-$(echo $GITHUB_SHA | head -c7).yaml
+          kubectl --kubeconfig=$GITHUB_WORKSPACE/kubeconfig wait --for=condition=complete --timeout=1800s job/fortuna-goerli-migration
+          kubectl --kubeconfig=$GITHUB_WORKSPACE/kubeconfig delete job/fortuna-goerli-migration
+
+      - name: Apply k8s deployment
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-2
+        run: |
+          kubectl --kubeconfig=$GITHUB_WORKSPACE/kubeconfig apply -f deployments/goerli-dep-$(echo $GITHUB_SHA | head -c7).yaml
+
+      - name: Verify deployment
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-2
+          KUBECONFIG: /github/workspace/kubeconfig
+        run: |
+          kubectl --kubeconfig=$GITHUB_WORKSPACE/kubeconfig rollout status deployment/fortuna-goerli-deployment
+
+      - name: Kill wireguard
+        run: wg-quick down tunnel

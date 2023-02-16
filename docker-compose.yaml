@@ -1,0 +1,26 @@
+version: '3.8'
+
+volumes:
+  database: {}
+
+services:
+  mainnet:
+    image: postgres:latest
+    volumes:
+      - database:/var/lib/postgresql/mainnet
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=mainnet
+    ports:
+      - 5432:5432
+  goerli:
+    image: postgres:latest
+    volumes:
+      - database:/var/lib/postgresql/goerli
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=goerli
+    ports:
+      - 5433:5432

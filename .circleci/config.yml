@@ -1,0 +1,441 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/2.0/configuration-reference
+
+# Reusable yaml aliases (like pointers)
+if-run-workflow: &if-run-workflow
+  or:
+    - equal: [deploy-mainnet, << pipeline.parameters.run-workflow >>]
+    - equal: [deploy-goerli, << pipeline.parameters.run-workflow >>]
+
+if-deploying-mainnet: &if-deploying-mainnet
+  or:
+    - equal: [deploy-mainnet, << pipeline.parameters.run-workflow >>]
+    - equal: [mainnet, << pipeline.git.branch >>]
+
+if-deploying-goerli: &if-deploying-goerli
+  or:
+    - equal: [deploy-goerli, << pipeline.parameters.run-workflow >>]
+    - equal: [goerli, << pipeline.git.branch >>]
+
+if-deploying: &if-deploying
+  or:
+    - equal: [goerli, << pipeline.git.branch >>]
+    - equal: [deploy-goerli, << pipeline.parameters.run-workflow >>]
+    - equal: [mainnet, << pipeline.git.branch >>]
+    - equal: [deploy-mainnet, << pipeline.parameters.run-workflow >>]
+
+github-ssh-fingerprints: &github-ssh-fingerprints
+  - '3a:c2:65:29:f1:55:e5:59:57:4c:e7:a7:b3:3f:34:4a'
+
+env-contexts: &env-contexts
+  - NPM
+  - Wiregaurd
+  - AWS
+  - KUBE
+  - SLACK
+
+# Begin circleci
+version: 2.1
+parameters:
+  run-workflow:
+    default: 'no-workflow-to-run'
+    type: string
+  branch-sha:
+    default: 'main'
+    type: string
+  ecr-repo:
+    default: 706936537074.dkr.ecr.us-west-2.amazonaws.com/upstreamapp/fortuna
+    type: string
+  node-version:
+    default: 16.17.0
+    type: string
+
+orbs:
+  node: circleci/node@5.0.3
+  aws-cli: circleci/aws-cli@3.1.3
+  kubernetes: circleci/kubernetes@1.3.1
+  slack: circleci/slack@4.10.1
+  helm: circleci/helm@2.0.1
+
+# common executors (machines / dockers)
+executors:
+  my-executor:
+    machine:
+      image: ubuntu-2004:2022.10.1 #this image already has bunch of things installed (curl, wgep, docker, etc...)
+      docker_layer_caching: false #need to pay more if true TODO:
+    environment:
+      NODE_OPTIONS: --max-old-space-size=8192
+
+#==================================================================================================================================
+#================================================ COMMON COMMANDS =================================================================
+#==================================================================================================================================
+commands:
+  notify:
+    description: Default template
+    parameters:
+      event:
+        type: string
+      text:
+        type: string
+      deploying-to:
+        type: string
+        default: << pipeline.git.branch >>
+    steps:
+      - slack/notify:
+          event: << parameters.event >>
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "<< parameters.text >> for *$CIRCLE_PROJECT_REPONAME* to << parameters.deploying-to >>"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Deploying SHA*: << pipeline.parameters.branch-sha >>" #TODO: branch sha is wrong here for run-workflow usecase
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*On*: << parameters.deploying-to >>"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*When*: $(date +'%m/%d/%Y %T')"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Author*: $CIRCLE_USERNAME"
+                    }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Job"
+                      },
+                      "url": "${CIRCLE_BUILD_URL}"
+                    }
+                  ]
+                }
+              ]
+            }
+  notify-start:
+    steps:
+      - when:
+          condition: *if-deploying-goerli
+          steps:
+            - notify:
+                event: always
+                text: ':arrow_right: Started a new build'
+                deploying-to: Goerli
+      - when:
+          condition: *if-deploying-mainnet
+          steps:
+            - notify:
+                event: always
+                text: ':arrow_right: Started a new build'
+                deploying-to: Mainnet
+  notify-pass:
+    steps:
+      - when:
+          condition: *if-deploying-goerli
+          steps:
+            - notify:
+                event: pass
+                text: ':white_check_mark: Build suceeded'
+                deploying-to: Goerli
+      - when:
+          condition: *if-deploying-mainnet
+          steps:
+            - notify:
+                event: pass
+                text: ':white_check_mark: Build suceeded'
+                deploying-to: Mainnet
+  notify-fail:
+    steps:
+      - when:
+          condition: *if-deploying-goerli
+          steps:
+            - notify:
+                event: fail
+                text: ':red_circle: Build failed'
+                deploying-to: Goerli
+      - when:
+          condition: *if-deploying-mainnet
+          steps:
+            - notify:
+                event: fail
+                text: ':red_circle: Build failed'
+                deploying-to: Mainnet
+  checkout-and-update-deploy-branch:
+    parameters:
+      branch-sha:
+        type: string
+        description: Ignored during PR tests because there is no deployment (if-deploying-goerli/mainnet)
+    description: If running deploy workflows, we should update the env branches (goerli | mainnet) with the branch given (default master)
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: *github-ssh-fingerprints
+      - when:
+          condition: *if-deploying-goerli
+          steps:
+            - run:
+                name: Force update goerli to branch/sha - << parameters.branch-sha >>
+                command: |
+                  git checkout << parameters.branch-sha >>
+                  git push origin << parameters.branch-sha >>:goerli -f
+      - when:
+          condition: *if-deploying-mainnet
+          steps:
+            - run:
+                name: Force update mainnet to branch/sha - << parameters.branch-sha >>
+                command: |
+                  git checkout << parameters.branch-sha >>
+                  git push origin << parameters.branch-sha >>:mainnet -f
+      - run:
+          name: Store SHA in tmp Dir for later Checkouts
+          command: |
+            mkdir tmp
+
+            echo $(git log --format="%H" -n 1) > tmp/gitsha
+            cat tmp/gitsha
+
+  checkout-deploy-branch:
+    description: Clone and Change to specific SHA from last step
+    steps:
+      - add_ssh_keys:
+          fingerprints: *github-ssh-fingerprints
+      - run:
+          name: Clone Repo and checkout SHA # needed for custom checkout to branch because SHA could have changed in the last step due to a push
+          command: |
+            echo 'Cloning git repository'
+            echo 'Trusting github.com'
+            ssh-keyscan github.com >> ~/.ssh/known_hosts # trust github.com
+
+            git clone -b "$CIRCLE_BRANCH" "$CIRCLE_REPOSITORY_URL"
+
+            git -C "$CIRCLE_PROJECT_REPONAME" branch --show-current
+
+            shopt -s dotglob # so it moves all files including .github, .git, etc.
+            mv "$CIRCLE_PROJECT_REPONAME"/* .
+            rm -rf $CIRCLE_PROJECT_REPONAME
+
+            echo Will checkout $(cat tmp/gitsha)
+            git fetch
+            git checkout --force -B $(cat tmp/gitsha)
+  build-app:
+    description: Setup npm and build app one time (cache going forward using persist_workspace:)
+    steps:
+      - node/install:
+          node-version: << pipeline.parameters.node-version >>
+      - run:
+          name: Authenticate with GitHub package registry
+          command: echo "//npm.pkg.github.com/:_authToken=$NPM_REPO_TOKEN" > ~/.npmrc
+      - node/install-packages:
+          cache-version: v2
+          cache-path: ~/project/node_modules
+          override-ci-command: npm install --no-audit
+      - run:
+          name: Build node app
+          command: npm run build
+  setup-wireguard:
+    steps:
+      - run:
+          name: Install wireguard Load Wireguard
+          command: |
+            echo "======== Installing Wiregaurd ========"
+            sudo apt-get install -y wireguard
+
+            echo "== Creating Tunnel Config Wiregaurd =="
+
+            sed -i -e "s@{{CTX_WIREGUARD_PRIVATE_KEY}}@${CTX_WIREGUARD_PRIVATE_KEY}@" ./.github/workflows/tunnel.conf
+            sed -i -e "s@{{CTX_WIREGUARD_SERVER_PUBLIC_KEY}}@${CTX_WIREGUARD_SERVER_PUBLIC_KEY}@" ./.github/workflows/tunnel.conf
+            sed -i -e "s@{{CTX_WIREGUARD_SERVER_ENDPOINT}}@${CTX_WIREGUARD_SERVER_ENDPOINT}@" ./.github/workflows/tunnel.conf
+            sudo cp ./.github/workflows/tunnel.conf /etc/wireguard/
+
+            echo "===== Starting Wiregaurd tunner ======"
+            sudo wg-quick up tunnel
+
+  build-and-push-image:
+    description: These steps build an image for the env.
+    steps:
+      - setup-wireguard
+      - aws-cli/setup:
+          profile-name: default
+      - run:
+          name: Login to ECR
+          command: aws ecr get-login-password | docker login --username AWS --password-stdin 706936537074.dkr.ecr.us-west-2.amazonaws.com
+      - run:
+          name: Build Docker image
+          command: |
+            echo Using SHA $(cat tmp/gitsha | head -c7)
+            docker build -t << pipeline.parameters.ecr-repo >>:$(cat tmp/gitsha | head -c7) .
+      - run:
+          name: Push Image to ECR
+          command: |
+            echo Using SHA $(cat tmp/gitsha | head -c7)
+            docker push << pipeline.parameters.ecr-repo >>:$(cat tmp/gitsha | head -c7)
+
+  deploy-app:
+    description: These steps deploy to a env.
+    parameters:
+      kube-namespace:
+        type: string
+        default: default
+      kube-deploy-file-path:
+        type: string
+        default: ''
+    steps:
+      - setup-wireguard
+      - kubernetes/install-kubectl:
+          kubectl-version: v1.22.0
+      - kubernetes/install-kubeconfig:
+          kubeconfig: KUBE_CONFIG_DATA
+      - helm/install-helm-client
+
+      - run:
+          name: Replace ~HASH~ in helm's values file
+          command: |
+            SHORTHASH=$(cat tmp/gitsha | head -c7)
+
+            sed -i "s/~HASH~/${SHORTHASH}/g" fortuna-charts/fortuna-<< parameters.kube-deploy-file-path >>-chart/values.yaml
+
+      - run:
+          name: Upgrade or install helm charts
+          command:
+            helm upgrade --install fortuna-<< parameters.kube-deploy-file-path >> fortuna-charts/fortuna-<< parameters.kube-deploy-file-path >>-chart
+
+
+  tear-down:
+    steps:
+      - run:
+          name: Kill wireguard
+          command: sudo wg-quick down tunnel
+
+#==================================================================================================================================
+#=========================================================== JOBS =================================================================
+#==================================================================================================================================
+
+jobs:
+  setup-base-and-build:
+    executor: my-executor
+    steps:
+      # - notify-start
+      - when:
+          condition: *if-run-workflow
+          steps:
+            - checkout-and-update-deploy-branch:
+                branch-sha: << pipeline.git.branch >>
+      - unless: # if deploying via mainnet or goerli branch or PR testing
+          condition: *if-run-workflow
+          steps:
+            - checkout-and-update-deploy-branch:
+                branch-sha: << pipeline.parameters.branch-sha >>
+      - build-app
+      - persist_to_workspace:
+          root: .
+          paths: #this is all we need so we dont duplicate steps going foward except for code checkouts
+            - 'dist'
+            - 'node_modules'
+            - 'tmp'
+      # - notify-fail
+  #----------
+  run-lint:
+    executor: my-executor
+    steps:
+      - attach_workspace:
+          at: .
+      - checkout-deploy-branch
+      - run:
+          name: Lint
+          command: npm run lint
+      # - notify-fail
+
+  #------------
+  build-and-push-image:
+    executor: my-executor
+    steps:
+      - attach_workspace:
+          at: .
+      - checkout-deploy-branch
+      - build-and-push-image
+      # - notify-fail
+
+  #------------
+  deploy:
+    executor: my-executor
+    steps:
+      - attach_workspace:
+          at: .
+      - checkout-deploy-branch
+      - when:
+          condition: *if-deploying-goerli
+          steps:
+            - deploy-app:
+                kube-deploy-file-path: goerli
+      - when:
+          condition: *if-deploying-mainnet
+          steps:
+            - deploy-app:
+                kube-deploy-file-path: mainnet
+      - tear-down
+      # - notify-pass
+      # - notify-fail
+
+#==================================================================================================================================
+#========================================================= WORKFLOWS ===============================================================
+#==================================================================================================================================
+
+workflows:
+  build-and-test:
+    unless: *if-deploying
+    jobs:
+      - setup-base-and-build:
+          context: *env-contexts
+      # run below in parrallel
+      - run-lint:
+          requires:
+            - setup-base-and-build
+          context: *env-contexts
+
+  #-----------------
+  deploy:
+    when: *if-deploying
+    jobs:
+      - setup-base-and-build:
+          context: *env-contexts
+
+      # run below in parrallel
+      - run-lint:
+          requires:
+            - setup-base-and-build
+          context: *env-contexts
+      - build-and-push-image:
+          requires:
+            - setup-base-and-build
+          context: *env-contexts
+      # end parrallel
+
+      - deploy:
+          requires:
+            - run-lint
+            - build-and-push-image
+          context: *env-contexts

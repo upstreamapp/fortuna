@@ -1,0 +1,49 @@
+name: Build & test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@main
+        with:
+          ref: ${{ github.event.inputs.sha }}
+
+      - name: setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.17.0
+
+      - name: Cache node modules
+        uses: actions/cache@v1
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-build-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-build-${{ env.cache-name }}-
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+
+      - name: setup doppler
+        uses: dopplerhq/cli-action@v1
+
+      - name: Pass all secrets to next steps
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_PRD_SECRET_TOKEN }}
+        run: doppler secrets download --no-file --format=docker >> $GITHUB_ENV;
+
+      - name: Install Dependencies
+        run: NODE_ENV=development npm install
+
+      - name: Run linter test
+        run: npm run lint
+
+      - name: Build app
+        run: NODE_OPTIONS=--max-old-space-size=8192 npm run build

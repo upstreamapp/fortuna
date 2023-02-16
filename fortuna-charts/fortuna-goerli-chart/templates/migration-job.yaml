@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-migration
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-1"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  activeDeadlineSeconds: 1800
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: "fortuna-goerli-migration-{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: Always
+          command: ['npm', 'run', 'migration:up']
+          envFrom:
+            - secretRef:
+                name: {{ .Values.deployment.secrets.envFrom }}

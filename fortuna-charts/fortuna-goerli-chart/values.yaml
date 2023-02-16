@@ -1,0 +1,24 @@
+replicaCount: 1
+
+image:
+  repository: 706936537074.dkr.ecr.us-west-2.amazonaws.com/upstreamapp/fortuna
+  tag: ~HASH~
+  pullPolicy: IfNotPresent
+
+service:
+  name: fortuna-goerli
+  monitor:
+    port: 81
+    targetPort: 7529
+  query:
+    port: 80
+    targetPort: 7530
+
+deployment:
+  containers:
+    monitor:
+      containerPort: 7539
+    query:
+      containerPort: 7540
+  secrets:
+    envFrom: doppler-fortuna-secret-goerli

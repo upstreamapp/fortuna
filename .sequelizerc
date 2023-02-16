@@ -1,0 +1,17 @@
+require('dotenv/config')
+const path = require('path')
+const url = `${process.env.DATABASE_URL}/${process.env.ETH_NETWORK}`
+
+if (
+  process.env.ETH_NETWORK !== 'goerli' &&
+  process.env.ETH_NETWORK !== 'mainnet'
+) {
+  throw new Error('Invalid `ETH_NETWORK` parameter')
+}
+
+module.exports = {
+  'models-path': path.resolve('dist/models'),
+  'migrations-path': path.resolve('dist/migrations'),
+  'seeders-path': path.resolve('dist/seeders'),
+  url: url
+}

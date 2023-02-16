@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-deployment
+  labels:
+    app: fortuna-mainnet
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: fortuna-mainnet
+  template:
+    metadata:
+      labels:
+        app: fortuna-mainnet
+    spec:
+      containers:
+        - name: fortuna-monitor
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ['node', 'dist/monitoringServer.js']
+          ports:
+            - containerPort: {{ .Values.deployment.containers.monitor.containerPort }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.deployment.secrets.envFrom }}
+        - name: fortuna-query
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ['node', 'dist/queryingServer.js']
+          ports:
+            - containerPort: {{ .Values.deployment.containers.query.containerPort }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.deployment.secrets.envFrom }}
+        - name: fortuna-token
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ['node', 'dist/tokenInfoServer.js']
+          envFrom:
+            - secretRef:
+                name: {{ .Values.deployment.secrets.envFrom }}

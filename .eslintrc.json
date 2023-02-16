@@ -1,0 +1,158 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "prettier",
+    "plugin:prettier/recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:import/typescript"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "@typescript-eslint",
+    "eslint-plugin-no-null",
+    "eslint-plugin-jsdoc",
+    "eslint-plugin-import",
+    "eslint-comments",
+    "no-null"
+  ],
+  "rules": {
+    "semi": "off",
+    "comma-dangle": "off",
+    "quotes": "off",
+    "sort-imports": "off",
+    "no-useless-escape": "off",
+
+    "no-undef": "off",
+    // '@typescript-eslint/no-undef': 'warn',
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "no-inner-declarations": "off",
+
+    "no-redeclare": "off",
+    "@typescript-eslint/no-redeclare": ["error"],
+
+    "import/namespace": "off",
+    "import/no-named-as-default": "off",
+    "import/no-named-as-default-member": "off",
+    "import/order": [
+      "warn",
+      {
+        "newlines-between": "never",
+        "alphabetize": {
+          "order": "asc"
+        }
+      }
+    ],
+    "import/no-duplicates": "warn",
+
+    "no-dupe-class-members": "off",
+    "@typescript-eslint/no-dupe-class-members": "warn",
+
+    "prettier/prettier": [
+      "error",
+      {
+        "singleQuote": true,
+        "semi": false,
+        "printWidth": 80
+      }
+    ],
+
+    "eslint-comments/no-unused-disable": "error",
+    "no-null/no-null": "off",
+    "no-else-return": ["error", { "allowElseIf": true }],
+    "no-lonely-if": "error",
+    "no-useless-return": "error",
+    "no-unused-expressions": "error",
+    "prefer-const": "error",
+    "valid-jsdoc": "warn",
+    // "sort-keys": "warn",
+    "object-shorthand": "warn",
+
+    "@typescript-eslint/naming-convention": [
+      "error",
+      // forbid leading and trailing underscores and enforce camelCase on EVERY name. will be overridden by subtypes if needed
+      {
+        "selector": "default",
+        "format": ["camelCase"],
+        "leadingUnderscore": "forbid",
+        "trailingUnderscore": "forbid"
+      },
+      // require all global constants to be camelCase or UPPER_CASE
+      // all other variables and functions still need to be camelCase
+      {
+        "selector": "variable",
+        "modifiers": ["const"],
+        "format": ["camelCase", "UPPER_CASE"]
+      },
+      // allow leading underscores for unused parameters, because `tsc --noUnusedParameters` will not flag underscore prefixed parameters
+      // all other rules (trailingUnderscore: forbid, format: camelCase) still apply
+      {
+        "selector": "parameter",
+        "format": ["camelCase"],
+        "leadingUnderscore": "allow"
+      },
+      // require leading underscores for private properties and methods, all other rules still apply
+      {
+        "selector": "memberLike",
+        "format": ["camelCase"],
+        "modifiers": ["private"],
+        "leadingUnderscore": "require"
+      },
+      // same for protected
+      {
+        "selector": "memberLike",
+        "format": ["camelCase"],
+        "modifiers": ["protected"],
+        "leadingUnderscore": "require"
+      },
+      // exclicitly disable the format check only for method toJSON
+      { "selector": "method", "filter": "^toJSON$", "format": null },
+      // exclicitly disable the format check only for GraphQL's internal method __resolveType
+      { "selector": "method", "filter": "^__resolveType$", "format": null },
+      // enforce UPPER_CASE for all public static readonly(!) properties
+      {
+        "selector": "property",
+        "modifiers": ["public", "static"],
+        "format": ["UPPER_CASE"]
+      },
+      {
+        "selector": "property",
+        // "modifiers": ["public", "static"],
+        "format": null
+      },
+
+      // enforce PascalCase for classes, interfaces, enums, etc. Remember, there are still no underscores allowed.
+      { "selector": "typeLike", "format": ["PascalCase"] },
+      // abstract classes must have the prefix "Abstract". The following part of the name must be valid PascalCase
+      {
+        "selector": "class",
+        "modifiers": ["abstract"],
+        "prefix": ["Abstract"],
+        "format": ["PascalCase"]
+      },
+      // interface names must start with "I". The following part of the name must be valid PascalCase
+      { "selector": "interface", "prefix": ["I"], "format": ["PascalCase"] },
+      // generic type parameters must start with "T"
+      // most of the time it will only be T, which is totally valid, because an empty string conforms to the PascalCase check
+      // By convention T, U and V are used for generics. You could enforce that with "regex": "^[TUV]$" and if you are care that much for performance, you could disable every other check by setting a falsy value
+      {
+        "selector": "typeParameter",
+        "prefix": ["T"],
+        "format": ["PascalCase"]
+      },
+      // enum members must be in PascalCase. Without this config, enumMember would inherit UPPER_CASE from public static const property
+      { "selector": "enumMember", "format": ["PascalCase", "UPPER_CASE"] }
+    ]
+  },
+  "settings": {
+    "import/resolver": {
+      "typescript": {}
+    }
+  }
+}

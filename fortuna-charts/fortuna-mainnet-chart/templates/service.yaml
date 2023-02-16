@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-service
+spec:
+  selector:
+    app: fortuna-mainnet
+  ports:
+    - name: fortuna-monitor
+      protocol: TCP
+      port: {{ .Values.service.monitor.port }}
+      targetPort: {{ .Values.service.monitor.targetPort }}
+    - name: fortuna-query
+      protocol: TCP
+      port: {{ .Values.service.query.port }}
+      targetPort: {{ .Values.service.query.targetPort }}
