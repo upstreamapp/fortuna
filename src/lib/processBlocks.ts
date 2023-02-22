@@ -1,7 +1,7 @@
 import Bluebird from 'bluebird'
 import { chunk } from 'lodash'
 import { format } from 'node-pg-format'
-import { TokenType } from '../@types'
+import { ProcessingGoal, TokenType } from '../@types'
 import { abi } from '../common/abi'
 import updateHighestBlock from '../db/operations/statusTable/updateHighestBlock'
 import updateSyncing from '../db/operations/statusTable/updateSyncing'
@@ -17,13 +17,11 @@ import { getEthClient } from './getEthClient'
 import getLogs from './getLogs'
 import Logger from './logger'
 import parseLog from './parseLog'
-import queueTokenInfoJobs from './queueTokenInfoJobs'
+import queueContractInfoJobs, {
+  IContractInfoJobDetails
+} from './queueContractInfoJobs'
+import queueTokenInfoJobs, { ITokenInfoJobDetails } from './queueTokenInfoJobs'
 import stats from './stats'
-
-export enum ProcessingGoal {
-  BACKFILL,
-  REALTIME
-}
 
 type FormattedTransaction = {
   tokenType: TokenType
@@ -145,12 +143,17 @@ export default async function processBlocks(
       )
 
       // queue each token that has been transferred so that the tokenInfoServer can extract their metadata.
-      await queueTokenInfoJobs(
-        formattedTransactions.map(tx => ({
-          tokenAddress: tx.address,
-          tokenId: tx.tokenId
-        }))
-      )
+
+      const tokenContractAddressAndId: Array<
+        IContractInfoJobDetails | ITokenInfoJobDetails
+      > = formattedTransactions.map(tx => ({
+        tokenAddress: tx.address,
+        tokenId: tx.tokenId,
+        blockNumber: tx.blockNumber,
+        goal
+      }))
+      await queueContractInfoJobs(tokenContractAddressAndId)
+      await queueTokenInfoJobs(tokenContractAddressAndId)
 
       stats.gauge(`insert_batch_size`, formattedTransactions.length)
 

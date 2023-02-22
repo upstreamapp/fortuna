@@ -1,20 +1,24 @@
+import 'dotenv/config'
+import 'module-alias/register'
+import 'source-map-support/register'
+
 import './lib/doom'
 import cluster from 'cluster'
 import { cpus } from 'os'
 import { Consumer } from 'sqs-consumer'
 import {
-  TOKEN_INFO_BATCH,
-  TOKEN_INFO_CLUSTER_MODE,
-  TOKEN_INFO_QUEUE_URL
+  CONTRACT_INFO_QUEUE_BATCH,
+  CONTRACT_INFO_QUEUE_URL
 } from './lib/constants'
 import Logger from './lib/logger'
-import { ITokenInfoJobDetails } from './lib/queueTokenInfoJobs'
-import updateTokenInfo from './lib/updateTokenInfo'
+import { IContractInfoJobDetails } from './lib/queueContractInfoJobs'
+import updateContractInfo from './lib/updateContractInfo'
+
 const logger = Logger(module)
 const coreCount = cpus().length
 
 /**
- * Consume the TokenInfo queue.
+ * Consume the ContractInfo queue.
  *
  * @remarks
  * The queue that is being consumed gets its jobs from the `monitoringServer` and `queryingServer`.
@@ -22,32 +26,32 @@ const coreCount = cpus().length
  * @returns {Promise<undefined>} This function does not return any useful value.
  */
 async function consumeQueue(): Promise<undefined> {
-  if (!TOKEN_INFO_QUEUE_URL) {
+  if (!CONTRACT_INFO_QUEUE_URL) {
     logger.warn('Invalid value given to `SQS_URL`')
     return process.exit(1)
   }
 
   const app = new Consumer({
-    batchSize: TOKEN_INFO_BATCH,
-    queueUrl: TOKEN_INFO_QUEUE_URL,
+    batchSize: CONTRACT_INFO_QUEUE_BATCH, //TODO different batch size
+    queueUrl: CONTRACT_INFO_QUEUE_URL,
     handleMessage: async sqsMessage => {
-      const data: ITokenInfoJobDetails = JSON.parse(sqsMessage.Body!)
-      await updateTokenInfo(data.tokenAddress, data.tokenId)
+      const data: IContractInfoJobDetails = JSON.parse(sqsMessage.Body!)
+      await updateContractInfo(data)
     }
   })
 
   app.on('error', err => logger.error(err.message))
   app.on('processing_error', err => logger.error(err.message))
 
-  logger.info(`Starting token info update queue consumer...`)
+  logger.info(`Starting contract info update queue consumer...`)
   app.start()
 }
 
 // spreading the workload of consuming the queue jobs
-if (cluster.isPrimary && TOKEN_INFO_CLUSTER_MODE) {
+if (cluster.isPrimary && CONTRACT_INFO_QUEUE_URL) {
   logger.info(`Primary thread; Spinning up ${coreCount} workers...`)
 
-  for (var i = 0; i < coreCount; i++) {
+  for (var i = 0; i < coreCount - 1; i++) {
     cluster.fork()
   }
 

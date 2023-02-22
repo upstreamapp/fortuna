@@ -41,6 +41,59 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "Update Contract Info",
+      "program": "${workspaceFolder}/dist/scripts/updateContractInfo",
+      "runtimeExecutable": "doppler",
+      "runtimeArgs": [
+        "run",
+        "--",
+        "node",
+        "${workspaceFolder}/dist/scripts/updateContractInfo"
+      ],
+      "preLaunchTask": "tsc: watch - tsconfig.json",
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "outputCapture": "std",
+      "internalConsoleOptions": "openOnSessionStart",
+      "args": ["0x1036a545d8dC68B2372E0F85810A4539399B0D7A"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Queue Contract Info",
+      "program": "${workspaceFolder}/dist/scripts/queueUpdateContractInfo",
+      "runtimeExecutable": "doppler",
+      "runtimeArgs": [
+        "run",
+        "--",
+        "node",
+        "${workspaceFolder}/dist/scripts/queueUpdateContractInfo"
+      ],
+      "preLaunchTask": "tsc: watch - tsconfig.json",
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "outputCapture": "std",
+      "internalConsoleOptions": "openOnSessionStart",
+      "args": ["100000", "true"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Contract Info Server",
+      "program": "${workspaceFolder}/dist/contractInfoServer",
+      "runtimeExecutable": "doppler",
+      "runtimeArgs": [
+        "run",
+        "--",
+        "node",
+        "${workspaceFolder}/dist/contractInfoServer"
+      ],
+      "preLaunchTask": "tsc: watch - tsconfig.json",
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "outputCapture": "std",
+      "internalConsoleOptions": "openOnSessionStart"
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "jest-test-current-file",
       "runtimeExecutable": "doppler",
       "runtimeArgs": [

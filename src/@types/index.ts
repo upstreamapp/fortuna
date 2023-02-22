@@ -101,3 +101,8 @@ export type TotalTokenValue = {
   balance: string
   token_ids: string[]
 }
+
+export enum ProcessingGoal {
+  BACKFILL,
+  REALTIME
+}
