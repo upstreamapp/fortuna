@@ -43,7 +43,7 @@ export async function queueContractInfoBackfill({
             : {}),
           ...(unproccessedOnly
             ? {
-                lastTransferBlock: { [Op.is]: null }
+                lastTransactionBlock: { [Op.is]: null }
               }
             : undefined)
         }
