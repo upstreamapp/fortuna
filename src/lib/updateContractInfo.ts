@@ -135,7 +135,7 @@ async function updateContractInfo({
     }
 
     await contractInfo.save()
-    stats.histogram('update_contract_called', Date.now() - startTime)
+    stats.histogram('update_contract_finished', Date.now() - startTime)
     console.log('time taken', Date.now() - startTime)
   } catch (err) {
     console.log(err)
