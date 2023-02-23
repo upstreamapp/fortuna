@@ -1,4 +1,4 @@
-import getHighestBlock from '../db/operations/statusTable/getHighestBlock'
+// import getHighestBlock from '../db/operations/statusTable/getHighestBlock'
 import backfillProcessing from './backfillProcessing'
 import { NUM_OF_BLOCKS_TO_REPROCESS } from './constants'
 import { getEthClient } from './getEthClient'
@@ -29,7 +29,8 @@ export default async function ingest(): Promise<void> {
   logger.info(`> Got current block number: ${latestBlock}`)
 
   // get the highest block that has already been processed, so that we can start ingesting logs from that block on and not start from the beginning.
-  const highestBlock = await getHighestBlock()
+  // const highestBlock = await getHighestBlock()
+  const highestBlock = 15315484
   logger.info(`> Got latest processed block number: ${highestBlock}`)
 
   // backfill until the latest block before processing transactions realtime

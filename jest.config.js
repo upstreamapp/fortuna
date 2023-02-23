@@ -10,6 +10,7 @@ module.exports = {
   },
   testRegex: '.test.(ts|js)$',
   rootDir: '.',
+  globalSetup: './jest.setup.js',
   moduleFileExtensions: ['js', 'ts'],
   setupFiles: ['dotenv/config'],
   modulePathIgnorePatterns: ['<rootDir>/dist/'],

@@ -100,6 +100,7 @@ export default async function processBlocks(
 
       // parse the logs found into a readable format
       const parsedLogs = parseLog(logsFound, abi)
+
       if (!parsedLogs.length) {
         continue
       }

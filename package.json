@@ -5,6 +5,8 @@
   "main": "dist/client/index.js",
   "types": "dist/client/index.d.ts",
   "scripts": {
+    "test": "NODE_ENV=test && jest --coverage",
+    "test:quick": "NODE_OPTIONS=--max-old-space-size=8192 NODE_ENV=test && node --expose-gc ./node_modules/.bin/jest -i  --detectOpenHandles --logHeapUsage --no-cache --collectCoverage",
     "lint": "tsc --noEmit && ./node_modules/.bin/eslint --fix --ext .js,.ts src/",
     "build": "rm -rf dist && tsc --project tsconfig.json",
     "monitoring": "node dist/monitoringServer.js",
@@ -45,6 +47,7 @@
     "winston": "^3.8.1"
   },
   "devDependencies": {
+    "@faker-js/faker": "^7.6.0",
     "@types/express": "^4.17.13",
     "@types/jest": "^29.4.0",
     "@types/lodash": "^4.14.184",
