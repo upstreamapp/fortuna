@@ -7,6 +7,7 @@ import cluster from 'cluster'
 import { cpus } from 'os'
 import { Consumer } from 'sqs-consumer'
 import {
+  CONTRACT_INFO_CLUSTER_MODE,
   CONTRACT_INFO_QUEUE_BATCH,
   CONTRACT_INFO_QUEUE_URL
 } from './lib/constants'
@@ -48,7 +49,7 @@ async function consumeQueue(): Promise<undefined> {
 }
 
 // spreading the workload of consuming the queue jobs
-if (cluster.isPrimary && CONTRACT_INFO_QUEUE_URL) {
+if (cluster.isPrimary && CONTRACT_INFO_CLUSTER_MODE) {
   logger.info(`Primary thread; Spinning up ${coreCount} workers...`)
 
   for (var i = 0; i < coreCount - 1; i++) {

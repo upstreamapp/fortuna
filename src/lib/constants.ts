@@ -24,17 +24,25 @@ export const BACKFILL_PARALLEL_QUERIES = Number(
 export const REALTIME_START_REPEAT = 5
 export const ETH_NETWORK = process.env.ETH_NETWORK
 export const DATABASE_CONNECTION_STRING = `${process.env.DATABASE_URL}/${process.env.ETH_NETWORK}`
-export const TOKEN_INFO_MAX_AGE_IN_DAYS = 1
-export const CONTRACT_INFO_MAX_AGE_IN_DAYS = 1
+
 export const BLACKHOLE = `0x0000000000000000000000000000000000000001`
+
+// contract info
+export const CONTRACT_INFO_MAX_AGE_IN_DAYS = 1
 export const CONTRACT_INFO_QUEUE_URL = process.env.SQS_CONTRACT_INFO_URL
-export const TOKEN_INFO_QUEUE_URL = process.env.SQS_TOKEN_INFO_URL
 export const CONTRACT_INFO_QUEUE_BATCH = Number(
   process.env.CONTRACT_INFO_QUEUE_BATCH || 1
 )
+export const CONTRACT_INFO_CLUSTER_MODE =
+  process.env.CONTRACT_INFO_CLUSTER_MODE === 'true'
+
+// token info
+export const TOKEN_INFO_MAX_AGE_IN_DAYS = 1
+export const TOKEN_INFO_QUEUE_URL = process.env.SQS_TOKEN_INFO_URL
 export const TOKEN_INFO_BATCH = Number(process.env.TOKEN_INFO_BATCH || 1)
 export const TOKEN_INFO_CLUSTER_MODE =
   process.env.TOKEN_INFO_CLUSTER_MODE === 'true'
+
 export const NUM_OF_BLOCKS_TO_REPROCESS = 1
 export const LOG_LEVEL = process.env.LOG_LEVEL
 export const SQL_DEBUG = process.env.SQL_DEBUG
