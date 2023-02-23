@@ -28,3 +28,20 @@ run-test: database-test-destroy database-test-init
 .PHONY: docker-compose-dev-no-doppler
 docker-compose-dev-no-doppler:
 	docker-compose -f docker-compose.yaml up -d
+
+#  builds the test database images and runs them. waits for the database to
+#  be ready
+.PHONY: database-connect-test-no-doppler
+database-connect-test-no-doppler:
+	@docker-compose --file docker-compose-test.yaml up -d
+	@npx wait-on tcp:localhost:5434
+
+
+.PHONY: database-test-init-no-doppler
+database-test-init-no-doppler: database-connect-test-no-doppler
+	npm run migration:up
+
+.PHONY: run-test-no-doppler
+run-test-no-doppler: database-test-destroy database-test-init-no-doppler
+	npm run test:quick
+	docker-compose --file docker-compose-test.yaml down -v && docker-compose --file docker-compose-test.yaml rm -v
