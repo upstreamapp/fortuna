@@ -6,7 +6,6 @@ import {
   DataType,
   PrimaryKey,
   AutoIncrement,
-  Default,
   UpdatedAt
 } from 'sequelize-typescript'
 import { TokenType } from '@types'
@@ -55,8 +54,7 @@ export class ContractInfo extends Model<
   @Column(DataType.INTEGER)
   decimals: Maybe<number>
 
-  @AllowNull(false)
-  @Default(0)
+  @AllowNull(true)
   @Column(DataType.INTEGER)
   lastTransactionBlock: Maybe<number>
 
