@@ -88,7 +88,6 @@ async function updateContractInfo({
 
     const latestBlockNumber = blockNumber || (await getLatestBlock(address))
 
-    const blockTIme = Date.now()
     const [contractName, symbol, decimals, tokenType, ethBalance, block] =
       await Promise.all([
         full ? safeCall<string>(contract, 'name') : contractInfo.name,
@@ -98,10 +97,6 @@ async function updateContractInfo({
         client.getBalance(address),
         latestBlockNumber ? client.getBlock(latestBlockNumber) : undefined
       ])
-
-    console.log(
-      `time take for block and eth balance = ${Date.now() - blockTIme}`
-    )
 
     // full
     contractInfo.name = contractName || knownContracts[address]?.name
@@ -136,7 +131,6 @@ async function updateContractInfo({
 
     await contractInfo.save()
     stats.histogram('update_contract_finished', Date.now() - startTime)
-    console.log('time taken', Date.now() - startTime)
   } catch (err) {
     console.log(err)
     logger.warn(`Failed at updateContractInfo(${tokenAddress}, ${err}`)
