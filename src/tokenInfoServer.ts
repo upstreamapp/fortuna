@@ -1,3 +1,7 @@
+import 'dotenv/config'
+import 'module-alias/register'
+import 'source-map-support/register'
+
 import './lib/doom'
 import cluster from 'cluster'
 import { cpus } from 'os'
