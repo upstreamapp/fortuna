@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: 706936537074.dkr.ecr.us-west-2.amazonaws.com/upstreamapp/fortuna
-  tag: ~HASH~
+  tag: sha-~HASH~
   pullPolicy: IfNotPresent
 
 service:
