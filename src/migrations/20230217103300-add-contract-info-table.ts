@@ -52,8 +52,7 @@ const migration: IMigration = {
       },
       lastTransactionBlock: {
         type: DataTypes.INTEGER,
-        allowNull: true,
-        defaultValue: 0
+        allowNull: true
       },
       lastTransactionAt: {
         type: DataTypes.DATE,
