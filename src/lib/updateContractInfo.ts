@@ -76,9 +76,9 @@ async function updateContractInfo({
     // if creating new or stale, update all data no matter what
     if (
       created ||
-      (contractInfo.updatedMetaInfoAt &&
-        differenceInDays(Date.now(), contractInfo.updatedMetaInfoAt) >=
-          CONTRACT_INFO_MAX_AGE_IN_DAYS)
+      !contractInfo.updatedMetaInfoAt ||
+      differenceInDays(Date.now(), contractInfo.updatedMetaInfoAt) >=
+        CONTRACT_INFO_MAX_AGE_IN_DAYS
     ) {
       full = true
     }
