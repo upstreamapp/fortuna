@@ -27,7 +27,9 @@ function tokenInfoMapper(tokenInfo: Maybe<TokenInfo>): Maybe<ITokenInfo> {
       type: tokenInfo.contractInfo.tokenType,
       name: tokenInfo.contractInfo.name,
       symbol: tokenInfo.contractInfo.symbol,
-      decimals: tokenInfo.contractInfo.decimals
+      decimals: tokenInfo.contractInfo.decimals,
+      ethBalance: tokenInfo.contractInfo.ethBalance,
+      lastTransactionDate: tokenInfo.contractInfo.lastTransactionAt
     },
     token: {
       id: tokenInfo.tokenId,

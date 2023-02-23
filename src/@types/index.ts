@@ -24,6 +24,8 @@ export interface ITokenInfo {
     name: Maybe<string>
     symbol: Maybe<string>
     decimals: Maybe<number>
+    ethBalance: Maybe<BigInt>
+    lastTransactionDate: Maybe<Date>
   }
   token: {
     id: Maybe<string>
