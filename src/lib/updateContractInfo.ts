@@ -86,11 +86,6 @@ async function updateContractInfo({
     const client = await getEthClient()
     const contract = new Contract(address, abi, client)
 
-    client.getLogs({
-      address: tokenAddress,
-      fromBlock: contractInfo.lastTransactionBlock || 0
-    })
-
     const latestBlockNumber = blockNumber || (await getLatestBlock(address))
 
     const blockTIme = Date.now()
