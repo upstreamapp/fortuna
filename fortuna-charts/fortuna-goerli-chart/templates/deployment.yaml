@@ -37,7 +37,7 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ .Values.deployment.secrets.envFrom }}
-        - name: fortuna-token
+        - name: fortuna-contract-info
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           command: ['node', 'dist/contractInfoServer.js']
           envFrom:

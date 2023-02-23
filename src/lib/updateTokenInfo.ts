@@ -41,7 +41,6 @@ async function updateTokenInfo(
     const [contractInfo] = await ContractInfo.findOrCreate({
       where: {
         address
-        // coalesce to null, since `undefined` isn't a valid sequelize value
       }
     })
     const [token, created] = await TokenInfo.findOrCreate({
