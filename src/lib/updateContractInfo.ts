@@ -4,7 +4,6 @@ import 'source-map-support/register'
 
 import { differenceInDays, isAfter } from 'date-fns'
 import { Contract, BigNumber as BN } from 'ethers'
-import { QueryTypes } from 'sequelize'
 import knownContracts from '../common/knownContracts'
 import { CONTRACT_INFO_MAX_AGE_IN_DAYS } from './constants'
 import getContractSpec from './getContractSpec'
@@ -14,7 +13,6 @@ import { IContractInfoJobDetails } from './queueContractInfoJobs'
 import safeCall from './safeCall'
 import stats from './stats'
 import { ContractInfo } from '@models/ContractInfo/ContractInfo'
-import { sequelize } from '@models/index'
 import { ProcessingGoal } from '@types'
 
 const abi = [
@@ -25,22 +23,6 @@ const abi = [
 
 const logger = Logger(module)
 
-async function getLatestBlock(tokenAddress: string) {
-  const row = await sequelize.query<{ blockNumber: number }>(
-    `SELECT
-      "blockNumber"
-    FROM
-      "TokenTransfer"
-    WHERE
-      "tokenAddress" = '${tokenAddress}'
-    ORDER BY
-      "blockNumber" DESC
-    LIMIT 1;`,
-    { raw: true, type: QueryTypes.SELECT, plain: true }
-  )
-  return row?.blockNumber
-}
-
 /**
  * Update, or add, a contracts's metadata into the `ContractInfo` table.
  *
@@ -48,7 +30,7 @@ async function getLatestBlock(tokenAddress: string) {
  * This function not only gets metadata from the contract in the blockchain itself.
  *
  * @param {tokenAddress} tokenAddress - The address of the token.
- * @param {latestBlockNumber} latestBlockNumber - The block number of token transfer.
+ * @param {blockNumber} blockNumber - The block number of token transfer.
 
  * @returns {Promise<void>} This function does not return any useful value.
  */
@@ -86,7 +68,10 @@ async function updateContractInfo({
     const client = await getEthClient()
     const contract = new Contract(address, abi, client)
 
-    const latestBlockNumber = blockNumber || (await getLatestBlock(address))
+    const shouldUpdateBlockMetrics =
+      !!blockNumber &&
+      (!contractInfo.lastTransactionBlock ||
+        blockNumber > contractInfo.lastTransactionBlock)
 
     const [contractName, symbol, decimals, tokenType, ethBalance, block] =
       await Promise.all([
@@ -95,28 +80,23 @@ async function updateContractInfo({
         full ? safeCall<BN>(contract, 'decimals') : contractInfo.decimals,
         full ? getContractSpec(address) : contractInfo.tokenType,
         client.getBalance(address),
-        latestBlockNumber ? client.getBlock(latestBlockNumber) : undefined
+        shouldUpdateBlockMetrics ? client.getBlock(blockNumber) : undefined
       ])
 
-    // full
     contractInfo.name = contractName || knownContracts[address]?.name
     contractInfo.symbol = symbol || knownContracts[address]?.symbol
     contractInfo.tokenType = tokenType
     contractInfo.decimals = decimals
       ? +decimals.toString()
       : knownContracts[address]?.decimals
+
     if (full) {
       contractInfo.updatedMetaInfoAt = new Date()
     }
 
-    // always
     contractInfo.ethBalance = BigInt(ethBalance.toString())
-
-    if (
-      latestBlockNumber &&
-      latestBlockNumber > (contractInfo.lastTransactionBlock || 0)
-    ) {
-      contractInfo.lastTransactionBlock = latestBlockNumber
+    if (shouldUpdateBlockMetrics) {
+      contractInfo.lastTransactionBlock = blockNumber
     }
 
     if (block?.timestamp) {
@@ -125,7 +105,7 @@ async function updateContractInfo({
         !contractInfo.lastTransactionAt ||
         isAfter(blockTimestanp, contractInfo.lastTransactionAt)
       ) {
-        contractInfo.lastTransactionAt = new Date(block.timestamp * 1000)
+        contractInfo.lastTransactionAt = blockTimestanp
       }
     }
 

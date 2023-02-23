@@ -43,7 +43,7 @@ export async function queueContractInfoBackfill({
             : {}),
           ...(unproccessedOnly
             ? {
-                lastTransactionBlock: { [Op.is]: null }
+                ethBalance: { [Op.is]: null }
               }
             : undefined)
         }
