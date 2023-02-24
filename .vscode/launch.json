@@ -72,7 +72,7 @@
       "outFiles": ["${workspaceFolder}/dist/**/*.js"],
       "outputCapture": "std",
       "internalConsoleOptions": "openOnSessionStart",
-      "args": ["100000", "true"]
+      "args": ["100000"]
     },
     {
       "type": "node",
