@@ -52,10 +52,10 @@ export async function updateExistingContractInfoByBlock({
   const possibleContractddresses = blockWithTransactions.transactions.reduce(
     (map: { toAddress: Set<string>; fromAddress: Set<string> }, tx) => {
       if (tx.from) {
-        map.fromAddress.add(tx.from)
+        map.fromAddress.add(tx.from.toLowerCase())
       }
       if (tx.to) {
-        map.toAddress.add(tx.to)
+        map.toAddress.add(tx.to.toLowerCase())
       }
 
       return map
