@@ -18,7 +18,7 @@ import {
 } from './queueContractInfoJobs'
 import safeCall from './safeCall'
 import stats from './stats'
-import { ContractInfo } from '@models/ContractInfo/ContractInfo'
+import { ContractInfo } from '@models/index'
 import { ProcessingGoal } from '@types'
 
 const abi = [
