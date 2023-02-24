@@ -29,6 +29,14 @@ const abi = [
 
 const logger = Logger(module)
 
+// async function getLatestBlock(tokenAddress: string) {
+//   const row = await sequelize.query<{ blockNumber: number }>(
+//     `SELECT "blockNumber" FROM "TokenTransfer" WHERE "tokenAddress" = '${tokenAddress}' ORDER BY "blockNumber" DESC LIMIT 1;`,
+//     { raw: true, type: QueryTypes.SELECT, plain: true }
+//   )
+//   return row?.blockNumber
+// }
+
 export async function updateExistingContractInfoByBlock({
   blockNumber,
   goal
@@ -128,7 +136,7 @@ export async function updateContractInfoByTokenAddress(
       (!contractInfo.lastTransactionBlock ||
         transferBlockNumber > contractInfo.lastTransactionBlock)
 
-    if (!updateSpec && !shouldUpdateBlockMetrics && !contractInfo.ethBalance) {
+    if (!updateSpec && !shouldUpdateBlockMetrics && contractInfo.ethBalance) {
       stats.increment('update_token_not_stale')
       return
     }
@@ -170,9 +178,8 @@ export async function updateContractInfoByTokenAddress(
           contractInfo.lastTransactionAt = blockTimestanp
         }
       }
-
-      contractInfo.ethBalance = BigInt(ethBalance.toString())
     }
+    contractInfo.ethBalance = BigInt(ethBalance.toString())
 
     await contractInfo.save()
     stats.histogram('update_contract_finished', Date.now() - startTime)
