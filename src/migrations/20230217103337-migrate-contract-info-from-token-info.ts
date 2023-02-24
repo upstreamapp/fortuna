@@ -5,7 +5,6 @@ import 'module-alias/register'
 import 'source-map-support/register'
 
 import { QueryInterface, QueryTypes, Sequelize } from 'sequelize'
-import { queueContractInfoBackfill } from '@lib/queueContractInfoJobs'
 
 interface IMigration {
   up: (queryInterface: QueryInterface, sequelize: Sequelize) => Promise<void>
