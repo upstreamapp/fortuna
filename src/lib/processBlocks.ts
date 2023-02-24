@@ -152,7 +152,7 @@ export default async function processBlocks(
       > = formattedTransactions.map(tx => ({
         tokenAddress: tx.address,
         tokenId: tx.tokenId,
-        blockNumber: tx.blockNumber,
+        transferBlockNumber: tx.blockNumber,
         goal
       }))
       await queueContractInfoByTokenAddressJobs(tokenContractJobDetails)
