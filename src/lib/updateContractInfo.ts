@@ -125,11 +125,11 @@ export async function updateContractInfoByTokenAddress(
     }
 
     const updateSpec =
-      !fullUpdate &&
-      (created ||
-        !contractInfo.updatedMetaInfoAt ||
-        differenceInDays(Date.now(), contractInfo.updatedMetaInfoAt) >=
-          CONTRACT_INFO_MAX_AGE_IN_DAYS)
+      fullUpdate ||
+      created ||
+      !contractInfo.updatedMetaInfoAt ||
+      differenceInDays(Date.now(), contractInfo.updatedMetaInfoAt) >=
+        CONTRACT_INFO_MAX_AGE_IN_DAYS
 
     const updateBlockMetrics =
       !!transferBlockNumber &&
