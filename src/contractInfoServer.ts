@@ -11,12 +11,24 @@ import {
   CONTRACT_INFO_QUEUE_BATCH,
   CONTRACT_INFO_QUEUE_URL
 } from './lib/constants'
-import Logger from './lib/logger'
-import { IContractInfoJobDetails } from './lib/queueContractInfoJobs'
-import updateContractInfo from './lib/updateContractInfo'
+import Logger from '@lib/logger'
+import {
+  IContractInfoJobDetailsByBlock,
+  IContractInfoJobDetailsByTokenAddress
+} from '@lib/queueContractInfoJobs'
+import {
+  updateContractInfoByTokenAddress,
+  updateExistingContractInfoByBlock
+} from '@lib/updateContractInfo'
 
 const logger = Logger(module)
 const coreCount = cpus().length
+
+export function isContractInfoJobLatestBlockType(
+  tokens: IContractInfoJobDetailsByTokenAddress | IContractInfoJobDetailsByBlock
+): tokens is IContractInfoJobDetailsByBlock {
+  return (tokens as IContractInfoJobDetailsByBlock).blockNumber !== undefined
+}
 
 /**
  * Consume the ContractInfo queue.
@@ -36,8 +48,14 @@ async function consumeQueue(): Promise<undefined> {
     batchSize: CONTRACT_INFO_QUEUE_BATCH, //TODO different batch size
     queueUrl: CONTRACT_INFO_QUEUE_URL,
     handleMessage: async sqsMessage => {
-      const data: IContractInfoJobDetails = JSON.parse(sqsMessage.Body!)
-      await updateContractInfo(data)
+      const data:
+        | IContractInfoJobDetailsByTokenAddress
+        | IContractInfoJobDetailsByBlock = JSON.parse(sqsMessage.Body!)
+      if (isContractInfoJobLatestBlockType(data)) {
+        await updateExistingContractInfoByBlock(data)
+      } else {
+        await updateContractInfoByTokenAddress(data)
+      }
     }
   })
 

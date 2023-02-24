@@ -4,8 +4,9 @@ import queueTokenInfoJobs, {
   ITokenInfoJobDetails
 } from '../../lib/queueTokenInfoJobs'
 import { TokenInfo } from '../../models/TokenInfo/TokenInfo'
-import queueContractInfoJobs, {
-  IContractInfoJobDetails
+import {
+  queueContractInfoByTokenAddressJobs,
+  IContractInfoJobDetailsByTokenAddress
 } from '@lib/queueContractInfoJobs'
 import { ContractInfo } from '@models/index'
 
@@ -81,12 +82,14 @@ async function enrichBalances(
         )
     )
 
-    const jobDetails: (IContractInfoJobDetails | ITokenInfoJobDetails)[] =
-      missingTokens.map(missingToken => ({
-        tokenAddress: missingToken.tokenAddress,
-        tokenId: missingToken.tokenId
-      }))
-    await queueContractInfoJobs(jobDetails)
+    const jobDetails: (
+      | IContractInfoJobDetailsByTokenAddress
+      | ITokenInfoJobDetails
+    )[] = missingTokens.map(missingToken => ({
+      tokenAddress: missingToken.tokenAddress,
+      tokenId: missingToken.tokenId
+    }))
+    await queueContractInfoByTokenAddressJobs(jobDetails)
     await queueTokenInfoJobs(jobDetails)
   }
 

@@ -17,8 +17,11 @@ import { getEthClient } from './getEthClient'
 import getLogs from './getLogs'
 import Logger from './logger'
 import parseLog from './parseLog'
-import queueContractInfoJobs, {
-  IContractInfoJobDetails
+import {
+  queueContractInfoByTokenAddressJobs,
+  queueUpdateExistingContractInfoByBlockJobs,
+  IContractInfoJobDetailsByTokenAddress,
+  IContractInfoJobDetailsByBlock
 } from './queueContractInfoJobs'
 import queueTokenInfoJobs, { ITokenInfoJobDetails } from './queueTokenInfoJobs'
 import stats from './stats'
@@ -144,16 +147,16 @@ export default async function processBlocks(
 
       // queue each token that has been transferred so that the tokenInfoServer can extract their metadata.
 
-      const tokenContractAddressAndId: Array<
-        IContractInfoJobDetails | ITokenInfoJobDetails
+      const tokenContractJobDetails: Array<
+        IContractInfoJobDetailsByTokenAddress | ITokenInfoJobDetails
       > = formattedTransactions.map(tx => ({
         tokenAddress: tx.address,
         tokenId: tx.tokenId,
         blockNumber: tx.blockNumber,
         goal
       }))
-      await queueContractInfoJobs(tokenContractAddressAndId)
-      await queueTokenInfoJobs(tokenContractAddressAndId)
+      await queueContractInfoByTokenAddressJobs(tokenContractJobDetails)
+      await queueTokenInfoJobs(tokenContractJobDetails)
 
       stats.gauge(`insert_batch_size`, formattedTransactions.length)
 
@@ -189,4 +192,18 @@ export default async function processBlocks(
 
     throw err
   }
+
+  if (goalIsBackfill) {
+    return
+  }
+
+  // Update existing ERC20, ERC721, ERC1155 contracts on any new block that might also not be transfer events
+  const blockContractJobDetails: IContractInfoJobDetailsByBlock[] = []
+  for (let block = fromBlock; block < toBlock; block++) {
+    blockContractJobDetails.push({
+      blockNumber: block,
+      goal
+    })
+  }
+  await queueUpdateExistingContractInfoByBlockJobs(blockContractJobDetails)
 }

@@ -4,11 +4,18 @@ import 'dotenv/config'
 import 'module-alias/register'
 import 'source-map-support/register'
 
-import updateContractInfo from '@lib/updateContractInfo'
+import { updateContractInfoByTokenAddress } from '@lib/updateContractInfo'
 
 async function main() {
   const contractAddress = process.argv[3]
-  await updateContractInfo({ tokenAddress: contractAddress })
+  const blockNumber = process.argv[4] ? +process.argv[4] : undefined
+  const fullUpdate = process.argv[5] === 'true'
+
+  await updateContractInfoByTokenAddress({
+    tokenAddress: contractAddress,
+    transferBlockNumber: blockNumber,
+    fullUpdate
+  })
 }
 
 main()

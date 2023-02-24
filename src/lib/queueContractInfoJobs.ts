@@ -13,11 +13,16 @@ const sqs = new SQS({
   apiVersion: 'latest'
 })
 
-export interface IContractInfoJobDetails {
+export interface IContractInfoJobDetailsByTokenAddress {
   tokenAddress: string
-  blockNumber?: number
+  transferBlockNumber?: number
   goal?: ProcessingGoal
-  full?: boolean
+  fullUpdate?: boolean
+}
+
+export interface IContractInfoJobDetailsByBlock {
+  blockNumber: number
+  goal: ProcessingGoal
 }
 
 export type TBackfill = {
@@ -55,11 +60,12 @@ export async function queueContractInfoBackfill({
     order: [['id', 'asc']]
   })
 
-  const queueTokens: IContractInfoJobDetails[] = contracts.map(contract => ({
-    tokenAddress: contract.address
-  }))
-
-  await queueContractInfoJobs(queueTokens)
+  const queueTokens: IContractInfoJobDetailsByTokenAddress[] = contracts.map(
+    contract => ({
+      tokenAddress: contract.address
+    })
+  )
+  await queueContractInfoByTokenAddressJobs(queueTokens)
 }
 
 /**
@@ -72,16 +78,14 @@ export async function queueContractInfoBackfill({
  *
  * @returns {Promise<boolean>} `Promise<boolean>` - A boolean indicating whether the tokens have been added to the queue successfully or not.
  */
-async function queueContractInfoJobs(
-  tokens: IContractInfoJobDetails[]
+export async function queueContractInfoByTokenAddressJobs(
+  tokens: IContractInfoJobDetailsByTokenAddress[]
 ): Promise<boolean> {
   try {
     if (!CONTRACT_INFO_QUEUE_URL || !tokens.length) {
       return false
     }
-
-    stats.increment('contract_token_info_job', tokens.length)
-
+    stats.increment('contract_info_job', tokens.length)
     // there's no need to add the same contract into the queue during every round of block(s) processing. only pick latest once
     const uniqueTokens = uniqBy(
       orderBy(tokens, ['blockNumber'], ['desc']),
@@ -94,7 +98,7 @@ async function queueContractInfoJobs(
           .sendMessageBatch({
             QueueUrl: CONTRACT_INFO_QUEUE_URL!,
             Entries: chunk.map(data => ({
-              Id: `contractInfo-token-${data.tokenAddress}`,
+              Id: `contractInfo-address-${data.tokenAddress}`,
               MessageBody: JSON.stringify(data)
             }))
           })
@@ -104,9 +108,35 @@ async function queueContractInfoJobs(
 
     return true
   } catch (err) {
-    logger.warn(`Failed at queueTokenInfoJob: ${err}`)
+    logger.warn(`Failed at contractTokenInfoJob: ${err}`)
     return false
   }
 }
 
-export default queueContractInfoJobs
+export async function queueUpdateExistingContractInfoByBlockJobs(
+  tokens: IContractInfoJobDetailsByBlock[]
+) {
+  try {
+    if (!CONTRACT_INFO_QUEUE_URL || !tokens.length) {
+      return false
+    }
+    await Bluebird.Promise.map(
+      chunk(tokens, 10),
+      chunk =>
+        sqs
+          .sendMessageBatch({
+            QueueUrl: CONTRACT_INFO_QUEUE_URL!,
+            Entries: chunk.map(data => ({
+              Id: `contractInfo-block-${data.blockNumber}`,
+              MessageBody: JSON.stringify(data)
+            }))
+          })
+          .promise(),
+      { concurrency: 10 }
+    )
+    return true
+  } catch (err) {
+    logger.warn(`Failed at contractTokenInfoJob: ${err}`)
+    return false
+  }
+}

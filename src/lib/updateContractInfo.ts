@@ -2,14 +2,20 @@ import 'dotenv/config'
 import 'module-alias/register'
 import 'source-map-support/register'
 
+import { BlockWithTransactions } from '@ethersproject/abstract-provider'
+import Bluebird from 'bluebird'
 import { differenceInDays, isAfter } from 'date-fns'
 import { Contract, BigNumber as BN } from 'ethers'
+import { Op } from 'sequelize'
 import knownContracts from '../common/knownContracts'
 import { CONTRACT_INFO_MAX_AGE_IN_DAYS } from './constants'
 import getContractSpec from './getContractSpec'
 import { getEthClient } from './getEthClient'
 import Logger from './logger'
-import { IContractInfoJobDetails } from './queueContractInfoJobs'
+import {
+  IContractInfoJobDetailsByTokenAddress,
+  IContractInfoJobDetailsByBlock
+} from './queueContractInfoJobs'
 import safeCall from './safeCall'
 import stats from './stats'
 import { ContractInfo } from '@models/ContractInfo/ContractInfo'
@@ -23,6 +29,57 @@ const abi = [
 
 const logger = Logger(module)
 
+export async function updateExistingContractInfoByBlock({
+  blockNumber,
+  goal
+}: IContractInfoJobDetailsByBlock): Promise<void> {
+  if (goal === ProcessingGoal.BACKFILL) {
+    return
+  }
+  const client = await getEthClient()
+  const blockWithTransactions = await client.getBlockWithTransactions(
+    blockNumber
+  )
+
+  const possibleContractddresses = blockWithTransactions.transactions.reduce(
+    (map: { toAddress: Set<string>; fromAddress: Set<string> }, tx) => {
+      if (tx.from) {
+        map.fromAddress.add(tx.from)
+      }
+      if (tx.to) {
+        map.toAddress.add(tx.to)
+      }
+
+      return map
+    },
+    { toAddress: new Set<string>(), fromAddress: new Set<string>() }
+  )
+
+  const possibleContractAddressUpdates = await ContractInfo.findAll({
+    where: {
+      address: {
+        [Op.in]: [
+          ...possibleContractddresses.fromAddress,
+          ...possibleContractddresses.toAddress
+        ]
+      }
+    }
+  })
+
+  await Bluebird.Promise.map(
+    possibleContractAddressUpdates,
+    contractInfo =>
+      updateContractInfoByTokenAddress(
+        {
+          tokenAddress: contractInfo.address,
+          transferBlockNumber: blockNumber
+        },
+        blockWithTransactions
+      ),
+    { concurrency: 5 }
+  )
+}
+
 /**
  * Update, or add, a contracts's metadata into the `ContractInfo` table.
  *
@@ -30,16 +87,19 @@ const logger = Logger(module)
  * This function not only gets metadata from the contract in the blockchain itself.
  *
  * @param {tokenAddress} tokenAddress - The address of the token.
- * @param {blockNumber} blockNumber - The block number of token transfer.
+ * @param {blockNumber} blockWithTransactions - The block (with transactions) when updating contractinfo by block.
 
  * @returns {Promise<void>} This function does not return any useful value.
  */
-async function updateContractInfo({
-  tokenAddress,
-  blockNumber,
-  goal,
-  full = false
-}: IContractInfoJobDetails): Promise<void> {
+export async function updateContractInfoByTokenAddress(
+  {
+    tokenAddress,
+    transferBlockNumber,
+    goal,
+    fullUpdate = false
+  }: IContractInfoJobDetailsByTokenAddress,
+  blockWithTransactions?: BlockWithTransactions
+): Promise<void> {
   const address = tokenAddress.toLowerCase()
   const startTime = Date.now()
   stats.increment('update_contract_called')
@@ -52,61 +112,66 @@ async function updateContractInfo({
     })
 
     if (!created && goal === ProcessingGoal.BACKFILL) {
+      stats.increment('update_token_backfill')
       return
     }
 
-    // if creating new or stale, update all data no matter what
-    if (
-      created ||
-      !contractInfo.updatedMetaInfoAt ||
-      differenceInDays(Date.now(), contractInfo.updatedMetaInfoAt) >=
-        CONTRACT_INFO_MAX_AGE_IN_DAYS
-    ) {
-      full = true
+    const updateSpec =
+      !fullUpdate &&
+      (created ||
+        !contractInfo.updatedMetaInfoAt ||
+        differenceInDays(Date.now(), contractInfo.updatedMetaInfoAt) >=
+          CONTRACT_INFO_MAX_AGE_IN_DAYS)
+
+    const shouldUpdateBlockMetrics =
+      !!transferBlockNumber &&
+      (!contractInfo.lastTransactionBlock ||
+        transferBlockNumber > contractInfo.lastTransactionBlock)
+
+    if (!updateSpec && !shouldUpdateBlockMetrics && !contractInfo.ethBalance) {
+      stats.increment('update_token_not_stale')
+      return
     }
 
     const client = await getEthClient()
     const contract = new Contract(address, abi, client)
 
-    const shouldUpdateBlockMetrics =
-      !!blockNumber &&
-      (!contractInfo.lastTransactionBlock ||
-        blockNumber > contractInfo.lastTransactionBlock)
-
     const [contractName, symbol, decimals, tokenType, ethBalance, block] =
       await Promise.all([
-        full ? safeCall<string>(contract, 'name') : contractInfo.name,
-        full ? safeCall<string>(contract, 'symbol') : contractInfo.symbol,
-        full ? safeCall<BN>(contract, 'decimals') : contractInfo.decimals,
-        full ? getContractSpec(address) : contractInfo.tokenType,
+        updateSpec ? safeCall<string>(contract, 'name') : contractInfo.name,
+        updateSpec ? safeCall<string>(contract, 'symbol') : contractInfo.symbol,
+        updateSpec ? safeCall<BN>(contract, 'decimals') : contractInfo.decimals,
+        updateSpec ? getContractSpec(address) : contractInfo.tokenType,
         client.getBalance(address),
-        shouldUpdateBlockMetrics ? client.getBlock(blockNumber) : undefined
+        shouldUpdateBlockMetrics
+          ? blockWithTransactions || client.getBlock(transferBlockNumber)
+          : undefined
       ])
 
-    contractInfo.name = contractName || knownContracts[address]?.name
-    contractInfo.symbol = symbol || knownContracts[address]?.symbol
-    contractInfo.tokenType = tokenType
-    contractInfo.decimals = decimals
-      ? +decimals.toString()
-      : knownContracts[address]?.decimals
+    if (updateSpec) {
+      contractInfo.name = contractName || knownContracts[address]?.name
+      contractInfo.symbol = symbol || knownContracts[address]?.symbol
+      contractInfo.tokenType = tokenType
+      contractInfo.decimals = decimals
+        ? +decimals.toString()
+        : knownContracts[address]?.decimals
 
-    if (full) {
       contractInfo.updatedMetaInfoAt = new Date()
     }
 
-    contractInfo.ethBalance = BigInt(ethBalance.toString())
     if (shouldUpdateBlockMetrics) {
-      contractInfo.lastTransactionBlock = blockNumber
-    }
-
-    if (block?.timestamp) {
-      const blockTimestanp = new Date(block.timestamp * 1000)
-      if (
-        !contractInfo.lastTransactionAt ||
-        isAfter(blockTimestanp, contractInfo.lastTransactionAt)
-      ) {
-        contractInfo.lastTransactionAt = blockTimestanp
+      contractInfo.lastTransactionBlock = transferBlockNumber
+      if (block?.timestamp) {
+        const blockTimestanp = new Date(block.timestamp * 1000)
+        if (
+          !contractInfo.lastTransactionAt ||
+          isAfter(blockTimestanp, contractInfo.lastTransactionAt)
+        ) {
+          contractInfo.lastTransactionAt = blockTimestanp
+        }
       }
+
+      contractInfo.ethBalance = BigInt(ethBalance.toString())
     }
 
     await contractInfo.save()
@@ -117,5 +182,3 @@ async function updateContractInfo({
     stats.histogram('update_contract_failed', Date.now() - startTime)
   }
 }
-
-export default updateContractInfo
