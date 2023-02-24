@@ -106,7 +106,6 @@ const migration: IMigration = {
     await queryInterface.sequelize.query(`call update_contract_info_id();`, {
       raw: true
     })
-    await queueContractInfoBackfill({})
   },
 
   down: async () => {
