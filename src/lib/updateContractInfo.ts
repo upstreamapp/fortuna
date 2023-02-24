@@ -131,12 +131,12 @@ export async function updateContractInfoByTokenAddress(
         differenceInDays(Date.now(), contractInfo.updatedMetaInfoAt) >=
           CONTRACT_INFO_MAX_AGE_IN_DAYS)
 
-    const shouldUpdateBlockMetrics =
+    const updateBlockMetrics =
       !!transferBlockNumber &&
       (!contractInfo.lastTransactionBlock ||
         transferBlockNumber > contractInfo.lastTransactionBlock)
 
-    if (!updateSpec && !shouldUpdateBlockMetrics && contractInfo.ethBalance) {
+    if (!updateSpec && !updateBlockMetrics && contractInfo.ethBalance) {
       stats.increment('update_token_not_stale')
       return
     }
@@ -151,7 +151,7 @@ export async function updateContractInfoByTokenAddress(
         updateSpec ? safeCall<BN>(contract, 'decimals') : contractInfo.decimals,
         updateSpec ? getContractSpec(address) : contractInfo.tokenType,
         client.getBalance(address),
-        shouldUpdateBlockMetrics
+        updateBlockMetrics
           ? blockWithTransactions || client.getBlock(transferBlockNumber)
           : undefined
       ])
@@ -167,7 +167,7 @@ export async function updateContractInfoByTokenAddress(
       contractInfo.updatedMetaInfoAt = new Date()
     }
 
-    if (shouldUpdateBlockMetrics) {
+    if (updateBlockMetrics) {
       contractInfo.lastTransactionBlock = transferBlockNumber
       if (block?.timestamp) {
         const blockTimestanp = new Date(block.timestamp * 1000)
