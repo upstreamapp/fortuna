@@ -18,10 +18,6 @@ interface IMigration {
 
 const migration: IMigration = {
   up: async queryInterface => {
-    await queryInterface.addIndex('TokenInfo', ['contractInfoId'], {
-      name: 'token_info_contract_info_id_idx',
-      unique: false
-    })
     await queryInterface.sequelize.query(
       `ALTER TABLE ONLY "TokenInfo"
     ADD CONSTRAINT "TokenInfo_contractInfoId_fkey" FOREIGN KEY ("contractInfoId") REFERENCES "ContractInfo"(id);`,

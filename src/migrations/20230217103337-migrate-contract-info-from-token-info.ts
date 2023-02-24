@@ -18,6 +18,11 @@ interface IMigration {
 
 const migration: IMigration = {
   up: async queryInterface => {
+    await queryInterface.addIndex('TokenInfo', ['contractInfoId'], {
+      name: 'token_info_contract_info_id_idx',
+      unique: false
+    })
+
     await queryInterface.sequelize.query(
       `
       INSERT INTO "ContractInfo" (address, "tokenType", "name", symbol, decimals, "updatedAt", "updatedMetaInfoAt")
