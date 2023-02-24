@@ -31,14 +31,6 @@ jobs:
             ${{ runner.OS }}-build-
             ${{ runner.OS }}-
 
-      - name: setup doppler
-        uses: dopplerhq/cli-action@v1
-
-      - name: Pass all secrets to next steps
-        env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_PRD_SECRET_TOKEN }}
-        run: doppler secrets download --no-file --format=docker >> $GITHUB_ENV;
-
       - name: Install Dependencies
         run: NODE_ENV=development npm install
 
