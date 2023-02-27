@@ -7,7 +7,8 @@ import Logger from './logger'
 import safeCall from './safeCall'
 import stats from './stats'
 import substituteTokenID from './substituteTokenID'
-import { ContractInfo, TokenInfo } from '@models/index'
+import { ContractInfo } from '@models/ContractInfo/ContractInfo'
+import { TokenInfo } from '@models/TokenInfo/TokenInfo'
 import { getCorrectTokenUrlsByExtension } from '@utils/tokenInfoHelper'
 
 const abi = [

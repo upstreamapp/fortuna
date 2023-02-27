@@ -29,14 +29,6 @@ const abi = [
 
 const logger = Logger(module)
 
-// async function getLatestBlock(tokenAddress: string) {
-//   const row = await sequelize.query<{ blockNumber: number }>(
-//     `SELECT "blockNumber" FROM "TokenTransfer" WHERE "tokenAddress" = '${tokenAddress}' ORDER BY "blockNumber" DESC LIMIT 1;`,
-//     { raw: true, type: QueryTypes.SELECT, plain: true }
-//   )
-//   return row?.blockNumber
-// }
-
 export async function updateExistingContractInfoByBlock({
   blockNumber,
   goal
@@ -49,7 +41,7 @@ export async function updateExistingContractInfoByBlock({
     blockNumber
   )
 
-  const possibleContractddresses = blockWithTransactions.transactions.reduce(
+  const possibleContractAddresses = blockWithTransactions.transactions.reduce(
     (map: { toAddress: Set<string>; fromAddress: Set<string> }, tx) => {
       if (tx.from) {
         map.fromAddress.add(tx.from.toLowerCase())
@@ -67,8 +59,8 @@ export async function updateExistingContractInfoByBlock({
     where: {
       address: {
         [Op.in]: [
-          ...possibleContractddresses.fromAddress,
-          ...possibleContractddresses.toAddress
+          ...possibleContractAddresses.fromAddress,
+          ...possibleContractAddresses.toAddress
         ]
       }
     }
