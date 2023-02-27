@@ -81,6 +81,11 @@ const migration: IMigration = {
   },
 
   down: async queryInterface => {
+    await queryInterface.removeIndex(
+      'ContractInfo',
+      'contract_info_address_idx'
+    )
+    await queryInterface.removeColumn('TokenInfo', 'contractInfoId')
     await queryInterface.dropTable('ContractInfo')
   }
 }

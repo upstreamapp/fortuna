@@ -29,8 +29,11 @@ const migration: IMigration = {
     // })
   },
 
-  down: async () => {
-    // await queryInterface.removeConstraint('TokenInfo', 'contractInfoId')
+  down: async queryInterface => {
+    await queryInterface.removeConstraint(
+      'TokenInfo',
+      'TokenInfo_contractInfoId_fkey'
+    )
   }
 }
 
