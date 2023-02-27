@@ -113,7 +113,7 @@ const migration: IMigration = {
   },
 
   down: async queryInterface => {
-    await queryInterface.removeConstraint('TokenInfo', 'contractInfoId')
+    await queryInterface.removeIndex('TokenInfo', 'contractInfoId')
     await queryInterface.sequelize.query(
       `DROP PROCEDURE IF EXISTS public.update_contract_info_id;`
     )
