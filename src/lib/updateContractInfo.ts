@@ -162,12 +162,12 @@ export async function updateContractInfoByTokenAddress(
     if (updateBlockMetrics) {
       contractInfo.lastTransactionBlock = transferBlockNumber
       if (block?.timestamp) {
-        const blockTimestanp = new Date(block.timestamp * 1000)
+        const blockTimestamp = new Date(block.timestamp * 1000)
         if (
           !contractInfo.lastTransactionAt ||
-          isAfter(blockTimestanp, contractInfo.lastTransactionAt)
+          isAfter(blockTimestamp, contractInfo.lastTransactionAt)
         ) {
-          contractInfo.lastTransactionAt = blockTimestanp
+          contractInfo.lastTransactionAt = blockTimestamp
         }
       }
     }
