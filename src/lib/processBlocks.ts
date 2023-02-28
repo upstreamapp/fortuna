@@ -67,12 +67,12 @@ export default async function processBlocks(
   await updateSyncing(true)
 
   try {
-    let processFrom = fromBlock
+    let fromBlockStart = fromBlock
 
-    while (processFrom <= toBlock) {
-      const displayFrom = processFrom
+    while (fromBlockStart <= toBlock) {
+      const displayFrom = fromBlockStart
       const displayTo =
-        processFrom + parallelQueries * batch + parallelQueries - 1
+        fromBlockStart + parallelQueries * batch + parallelQueries - 1
 
       await updateSyncingBlocks([displayFrom, displayTo])
 
@@ -81,8 +81,8 @@ export default async function processBlocks(
       // fetch transaction logs and parallelizing the queries to spread the load
       const logs = Array.from(Array(parallelQueries).keys()).map(() => {
         // batch each query by a certain number of blocks
-        const logPromises = getLogs(processFrom, processFrom + batch)
-        processFrom = processFrom + batch + 1
+        const logPromises = getLogs(fromBlockStart, fromBlockStart + batch)
+        fromBlockStart = fromBlockStart + batch + 1
         return logPromises
       })
 
