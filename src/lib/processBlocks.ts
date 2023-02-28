@@ -67,10 +67,12 @@ export default async function processBlocks(
   await updateSyncing(true)
 
   try {
-    while (fromBlock <= toBlock) {
-      const displayFrom = fromBlock
+    let processFrom = fromBlock
+
+    while (processFrom <= toBlock) {
+      const displayFrom = processFrom
       const displayTo =
-        fromBlock + parallelQueries * batch + parallelQueries - 1
+        processFrom + parallelQueries * batch + parallelQueries - 1
 
       await updateSyncingBlocks([displayFrom, displayTo])
 
@@ -79,8 +81,8 @@ export default async function processBlocks(
       // fetch transaction logs and parallelizing the queries to spread the load
       const logs = Array.from(Array(parallelQueries).keys()).map(() => {
         // batch each query by a certain number of blocks
-        const logPromises = getLogs(fromBlock, fromBlock + batch)
-        fromBlock = fromBlock + batch + 1
+        const logPromises = getLogs(processFrom, processFrom + batch)
+        processFrom = processFrom + batch + 1
         return logPromises
       })
 
@@ -199,7 +201,7 @@ export default async function processBlocks(
 
   // Update existing ERC20, ERC721, ERC1155 contracts on any new block that might also not be transfer events
   const blockContractJobDetails: IContractInfoJobDetailsByBlock[] = []
-  for (let block = fromBlock; block < toBlock; block++) {
+  for (let block = fromBlock; block <= toBlock; block++) {
     blockContractJobDetails.push({
       blockNumber: block,
       goal
