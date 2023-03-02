@@ -109,6 +109,7 @@ export async function updateContractInfoByTokenAddress(
 
     if (!created && goal === ProcessingGoal.BACKFILL) {
       stats.increment('update_contract_backfill')
+      return
     }
 
     const updateSpec =
@@ -125,6 +126,7 @@ export async function updateContractInfoByTokenAddress(
 
     if (!updateSpec && !updateBlockMetrics && contractInfo.ethBalance) {
       stats.increment('update_contract_not_stale')
+      return
     }
 
     const client = await getEthClient()
