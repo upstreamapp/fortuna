@@ -42,26 +42,22 @@ export async function updateExistingContractInfoByBlock({
   )
 
   const possibleContractAddresses = blockWithTransactions.transactions.reduce(
-    (map: { toAddress: Set<string>; fromAddress: Set<string> }, tx) => {
+    (set: Set<string>, tx) => {
       if (tx.from) {
-        map.fromAddress.add(tx.from.toLowerCase())
+        set.add(tx.from.toLowerCase())
       }
       if (tx.to) {
-        map.toAddress.add(tx.to.toLowerCase())
+        set.add(tx.to.toLowerCase())
       }
-
-      return map
+      return set
     },
-    { toAddress: new Set<string>(), fromAddress: new Set<string>() }
+    new Set<string>()
   )
 
   const possibleContractAddressUpdates = await ContractInfo.findAll({
     where: {
       address: {
-        [Op.in]: [
-          ...possibleContractAddresses.fromAddress,
-          ...possibleContractAddresses.toAddress
-        ]
+        [Op.in]: [...possibleContractAddresses]
       }
     }
   })
@@ -112,8 +108,7 @@ export async function updateContractInfoByTokenAddress(
     })
 
     if (!created && goal === ProcessingGoal.BACKFILL) {
-      stats.increment('update_token_backfill')
-      return
+      stats.increment('update_contract_backfill')
     }
 
     const updateSpec =
@@ -129,8 +124,7 @@ export async function updateContractInfoByTokenAddress(
         transferBlockNumber > contractInfo.lastTransactionBlock)
 
     if (!updateSpec && !updateBlockMetrics && contractInfo.ethBalance) {
-      stats.increment('update_token_not_stale')
-      return
+      stats.increment('update_contract_not_stale')
     }
 
     const client = await getEthClient()
