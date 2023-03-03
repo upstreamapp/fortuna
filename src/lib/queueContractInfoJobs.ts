@@ -1,11 +1,9 @@
 import SQS from 'aws-sdk/clients/sqs'
 import Bluebird from 'bluebird'
 import { chunk, orderBy, uniqBy } from 'lodash'
-import { Op } from 'sequelize'
 import { CONTRACT_INFO_QUEUE_URL } from './constants'
 import Logger from './logger'
 import stats from './stats'
-import { ContractInfo } from '@models/index'
 import { ProcessingGoal } from '@types'
 
 const logger = Logger(module)
@@ -15,13 +13,14 @@ const sqs = new SQS({
 
 export interface IContractInfoJobDetailsByTokenAddress {
   tokenAddress: string
-  transferBlockNumber?: Maybe<number>
-  goal?: Maybe<ProcessingGoal>
+  transferBlockNumber?: number
+  goal?: ProcessingGoal
   fullUpdate?: boolean
 }
 
 export interface IContractInfoJobDetailsByBlock {
   blockNumber: number
+  goal: ProcessingGoal
 }
 
 export type TBackfill = {
@@ -40,7 +39,7 @@ export type TBackfill = {
  *
  * @returns {Promise<boolean>} `Promise<boolean>` - A boolean indicating whether the tokens have been added to the queue successfully or not.
  */
-export async function queueUpdateContractInfoByTokenAddress(
+export async function queueContractInfoByTokenAddressJobs(
   tokens: IContractInfoJobDetailsByTokenAddress[]
 ): Promise<boolean> {
   try {
@@ -75,48 +74,15 @@ export async function queueUpdateContractInfoByTokenAddress(
   }
 }
 
-async function getLastContractInfoId() {
-  return (await ContractInfo.findOne({ order: [['id', 'desc']] }))?.id
-}
-
-export async function queueAllContractInfoRecords() {
-  let current = 0
-  const limit = 5000
-  let max = (await getLastContractInfoId()) || 0
-  while (current < max) {
-    const contracts = await ContractInfo.findAll({
-      attributes: {
-        include: ['id', 'address']
-      },
-      where: {
-        id: {
-          [Op.gte]: current
-        }
-      },
-      limit,
-      order: [['id', 'asc']]
-    })
-
-    const queueTokens: IContractInfoJobDetailsByTokenAddress[] = contracts.map(
-      contract => ({
-        tokenAddress: contract.address
-      })
-    )
-    await queueUpdateContractInfoByTokenAddress(queueTokens)
-    current = contracts[contracts.length - 1].id
-    max = (await getLastContractInfoId()) || max
-  }
-}
-
-export async function queueUpdateExistingContractInfoByBlock(
-  blocks: IContractInfoJobDetailsByBlock[]
+export async function queueUpdateExistingContractInfoByBlockJobs(
+  tokens: IContractInfoJobDetailsByBlock[]
 ) {
   try {
-    if (!CONTRACT_INFO_QUEUE_URL || !blocks.length) {
+    if (!CONTRACT_INFO_QUEUE_URL || !tokens.length) {
       return false
     }
     await Bluebird.Promise.map(
-      chunk(blocks, 10),
+      chunk(tokens, 10),
       chunk =>
         sqs
           .sendMessageBatch({
