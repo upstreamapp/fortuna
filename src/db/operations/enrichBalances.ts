@@ -3,12 +3,8 @@ import { IBalance, IEnrichedBalance, ITokenInfo } from '../../@types'
 import queueTokenInfoJobs, {
   ITokenInfoJobDetails
 } from '../../lib/queueTokenInfoJobs'
-import { TokenInfo } from '../../models/TokenInfo/TokenInfo'
-import {
-  queueContractInfoByTokenAddressJobs,
-  IContractInfoJobDetailsByTokenAddress
-} from '@lib/queueContractInfoJobs'
-import { ContractInfo } from '@models/index'
+import { IContractInfoJobDetailsByTokenAddress } from '@lib/queueContractInfoJobs'
+import { ContractInfo, TokenInfo } from '@models/index'
 
 /**
  * Map an instance of `TokenInfo` into `ITokenInfo`.
@@ -89,7 +85,6 @@ async function enrichBalances(
       tokenAddress: missingToken.tokenAddress,
       tokenId: missingToken.tokenId
     }))
-    await queueContractInfoByTokenAddressJobs(jobDetails)
     await queueTokenInfoJobs(jobDetails)
   }
 

@@ -36,7 +36,10 @@ async function consumeQueue(): Promise<undefined> {
     queueUrl: TOKEN_INFO_QUEUE_URL,
     handleMessage: async sqsMessage => {
       const data: ITokenInfoJobDetails = JSON.parse(sqsMessage.Body!)
-      await updateTokenInfo(data.tokenAddress, data.tokenId)
+      await updateTokenInfo({
+        tokenAddress: data.tokenAddress,
+        tokenId: data.tokenId
+      })
     }
   })
 

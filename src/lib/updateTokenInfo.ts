@@ -4,11 +4,11 @@ import { TOKEN_INFO_MAX_AGE_IN_DAYS } from './constants'
 import fetchRemoteMetadata from './fetchRemoteMetadata'
 import { getEthClient } from './getEthClient'
 import Logger from './logger'
+import { ITokenInfoJobDetails } from './queueTokenInfoJobs'
 import safeCall from './safeCall'
 import stats from './stats'
 import substituteTokenID from './substituteTokenID'
-import { ContractInfo } from '@models/ContractInfo/ContractInfo'
-import { TokenInfo } from '@models/TokenInfo/TokenInfo'
+import { ContractInfo, TokenInfo } from '@models/index'
 import { getCorrectTokenUrlsByExtension } from '@utils/tokenInfoHelper'
 
 const abi = [
@@ -29,10 +29,10 @@ const logger = Logger(module)
  *
  * @returns {Promise<void>} This function does not return any useful value.
  */
-async function updateTokenInfo(
-  tokenAddress: string,
-  tokenId?: Maybe<string>
-): Promise<void> {
+async function updateTokenInfo({
+  tokenAddress,
+  tokenId
+}: ITokenInfoJobDetails): Promise<void> {
   const startTime = Date.now()
   stats.increment('update_token_called')
   const address = tokenAddress.toLowerCase()

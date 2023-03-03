@@ -1,5 +1,5 @@
 import Bluebird from 'bluebird'
-import { chunk } from 'lodash'
+import { chunk, uniqBy } from 'lodash'
 import { format } from 'node-pg-format'
 import { ProcessingGoal, TokenType } from '../@types'
 import { abi } from '../common/abi'
@@ -18,12 +18,13 @@ import getLogs from './getLogs'
 import Logger from './logger'
 import parseLog from './parseLog'
 import {
-  queueContractInfoByTokenAddressJobs,
-  queueUpdateExistingContractInfoByBlockJobs,
-  IContractInfoJobDetailsByTokenAddress,
-  IContractInfoJobDetailsByBlock
+  queueUpdateExistingContractInfoByBlock,
+  IContractInfoJobDetailsByBlock,
+  queueAllContractInfoRecords
 } from './queueContractInfoJobs'
-import queueTokenInfoJobs, { ITokenInfoJobDetails } from './queueTokenInfoJobs'
+import queueUpdateTokenInfo, {
+  ITokenInfoJobDetails
+} from './queueTokenInfoJobs'
 import stats from './stats'
 
 type FormattedTransaction = {
@@ -149,34 +150,18 @@ export default async function processBlocks(
 
       // queue each token that has been transferred so that the tokenInfoServer can extract their metadata.
 
-      const tokenContractJobDetails: Array<
-        IContractInfoJobDetailsByTokenAddress | ITokenInfoJobDetails
-      > = formattedTransactions.map(tx => ({
-        tokenAddress: tx.address,
-        tokenId: tx.tokenId,
-        transferBlockNumber: tx.blockNumber,
-        goal
-      }))
-      await queueContractInfoByTokenAddressJobs(tokenContractJobDetails)
-      await queueTokenInfoJobs(tokenContractJobDetails)
-
       stats.gauge(`insert_batch_size`, formattedTransactions.length)
 
-      const dbDateStart = Date.now()
+      const tokenContractJobDetails: Array<ITokenInfoJobDetails> =
+        formattedTransactions.map(tx => ({
+          tokenAddress: tx.address,
+          tokenId: tx.tokenId
+        }))
 
-      // insert each token transfer into the TokenTransfer table if it doesn't already exist. If it exists, skip it.
-      await Bluebird.Promise.mapSeries(
-        chunk(formattedTransactions.map(Object.values), 1000),
-        txsChunk =>
-          sequelize.query(
-            format(
-              `INSERT INTO "TokenTransfer" ("tokenType", "tokenAddress", "fromAddress", "toAddress", "operator", "tokenId", "value", "transactionHash", "logIndex", "blockNumber") VALUES %L ON CONFLICT DO NOTHING;`,
-              txsChunk
-            )
-          )
-      )
-      const dbDateEnd = Date.now() - dbDateStart
-      stats.histogram(`submit_transactions_to_db`, dbDateEnd)
+      await createNewContractInfoRecords(tokenContractJobDetails)
+      // await await queueUpdateContractInfoByTokenAddress(tokenContractJobDetails) // satisfies new contracts during backfill (early rejection on duplicate) and realtime
+      await queueUpdateTokenInfo(tokenContractJobDetails)
+      await createTokenTransferRecords(formattedTransactions)
 
       const highestBlock = formattedTransactions.at(-1)?.blockNumber
       if (highestBlock) {
@@ -196,16 +181,59 @@ export default async function processBlocks(
   }
 
   if (goalIsBackfill) {
+    await queueAllContractInfoRecords()
     return
   }
 
-  // Update existing ERC20, ERC721, ERC1155 contracts on any new block that might also not be transfer events
+  // Update existing ERC20, ERC721, ERC1155 contracts on any new block that might also not be transfer events above
   const blockContractJobDetails: IContractInfoJobDetailsByBlock[] = []
   for (let block = fromBlock; block <= toBlock; block++) {
     blockContractJobDetails.push({
-      blockNumber: block,
-      goal
+      blockNumber: block
     })
   }
-  await queueUpdateExistingContractInfoByBlockJobs(blockContractJobDetails)
+  await queueUpdateExistingContractInfoByBlock(blockContractJobDetails)
+}
+
+async function createNewContractInfoRecords(
+  tokens: { tokenAddress: string }[]
+) {
+  const dateStart = Date.now()
+  // insert each token transfer into the TokenTransfer table if it doesn't already exist. If it exists, skip it.
+  await Bluebird.Promise.mapSeries(
+    chunk(
+      uniqBy(tokens, token => token.tokenAddress).map(token => [
+        token.tokenAddress
+      ]),
+      1000
+    ),
+    tokenChunk =>
+      sequelize.query(
+        format(
+          `INSERT INTO "ContractInfo" ("address") VALUES %L ON CONFLICT DO NOTHING;`,
+          tokenChunk
+        )
+      )
+  )
+  const dateEndDif = Date.now() - dateStart
+  stats.histogram(`submit_contractInfo_transactions_to_db`, dateEndDif)
+}
+
+async function createTokenTransferRecords(
+  formattedTransactions: FormattedTransaction[]
+) {
+  const dateStart = Date.now()
+  // insert each token transfer into the TokenTransfer table if it doesn't already exist. If it exists, skip it.
+  await Bluebird.Promise.mapSeries(
+    chunk(formattedTransactions.map(Object.values), 1000),
+    txsChunk =>
+      sequelize.query(
+        format(
+          `INSERT INTO "TokenTransfer" ("tokenType", "tokenAddress", "fromAddress", "toAddress", "operator", "tokenId", "value", "transactionHash", "logIndex", "blockNumber") VALUES %L ON CONFLICT DO NOTHING;`,
+          txsChunk
+        )
+      )
+  )
+  const dateEndDif = Date.now() - dateStart
+  stats.histogram(`submit_transactions_to_db`, dateEndDif)
 }

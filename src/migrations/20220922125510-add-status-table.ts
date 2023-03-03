@@ -6,7 +6,7 @@ import 'source-map-support/register'
 
 import { DataTypes, QueryInterface, Sequelize } from 'sequelize'
 import { SyncingState } from '../@types'
-import { Status } from '../models/index'
+import { Status } from '@models/index'
 
 interface IMigration {
   up: (queryInterface: QueryInterface, sequelize: Sequelize) => Promise<void>

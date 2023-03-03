@@ -30,12 +30,8 @@ const abi = [
 const logger = Logger(module)
 
 export async function updateExistingContractInfoByBlock({
-  blockNumber,
-  goal
+  blockNumber
 }: IContractInfoJobDetailsByBlock): Promise<void> {
-  if (goal === ProcessingGoal.BACKFILL) {
-    return
-  }
   const client = await getEthClient()
   const blockWithTransactions = await client.getBlockWithTransactions(
     blockNumber
@@ -78,13 +74,9 @@ export async function updateExistingContractInfoByBlock({
 
 /**
  * Update, or add, a contracts's metadata into the `ContractInfo` table.
- *
- * @remarks
- * This function not only gets metadata from the contract in the blockchain itself.
- *
- * @param {tokenAddress} tokenAddress - The address of the token.
- * @param {blockNumber} blockWithTransactions - The block (with transactions) when updating contractinfo by block.
-
+ * @remarks This function not only gets metadata from the contract in the blockchain itself.
+ * @param {transferObject} transferObject - {tokenAddress: The address of the token, transferBlockNumber: Optional transfer block number, goal: Optional Current goal of the process, fullUpdate: Optional boolean whether to perform full update}
+ * @param {blockWithTransactions} blockWithTransactions - The block (with transactions) when updating contractinfo by block.
  * @returns {Promise<void>} This function does not return any useful value.
  */
 export async function updateContractInfoByTokenAddress(
@@ -95,7 +87,7 @@ export async function updateContractInfoByTokenAddress(
     fullUpdate = false
   }: IContractInfoJobDetailsByTokenAddress,
   blockWithTransactions?: BlockWithTransactions
-): Promise<void> {
+): Promise<ContractInfo> {
   const address = tokenAddress.toLowerCase()
   const startTime = Date.now()
   stats.increment('update_contract_called')
@@ -109,7 +101,7 @@ export async function updateContractInfoByTokenAddress(
 
     if (!created && goal === ProcessingGoal.BACKFILL) {
       stats.increment('update_contract_backfill')
-      return
+      return contractInfo
     }
 
     const updateSpec =
@@ -126,7 +118,7 @@ export async function updateContractInfoByTokenAddress(
 
     if (!updateSpec && !updateBlockMetrics && contractInfo.ethBalance) {
       stats.increment('update_contract_not_stale')
-      return
+      return contractInfo
     }
 
     const client = await getEthClient()
@@ -171,9 +163,14 @@ export async function updateContractInfoByTokenAddress(
 
     await contractInfo.save()
     stats.histogram('update_contract_finished', Date.now() - startTime)
+    return contractInfo
   } catch (err) {
-    console.log(err)
     logger.warn(`Failed at updateContractInfo(${tokenAddress}, ${err}`)
     stats.histogram('update_contract_failed', Date.now() - startTime)
+    throw new Error(
+      `Failed at updateContractInfo:[${tokenAddress}] block: [${
+        transferBlockNumber || blockWithTransactions?.number
+      }]`
+    )
   }
 }

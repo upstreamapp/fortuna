@@ -25,7 +25,7 @@ export interface ITokenInfoJobDetails {
  *
  * @returns {Promise<boolean>} `Promise<boolean>` - A boolean indicating whether the tokens have been added to the queue successfully or not.
  */
-async function queueTokenInfoJobs(
+async function queueUpdateTokenInfo(
   tokens: ITokenInfoJobDetails[]
 ): Promise<boolean> {
   try {
@@ -59,4 +59,4 @@ async function queueTokenInfoJobs(
   }
 }
 
-export default queueTokenInfoJobs
+export default queueUpdateTokenInfo
