@@ -23,7 +23,9 @@
     "declaration": true,
     "paths": {
       "@models/*": ["models/*"],
-      "@utils/*": ["utils/*"]
+      "@utils/*": ["utils/*"],
+      "@lib/*": ["lib/*"],
+      "@types/*": ["@types/*"]
     }
   },
   "include": ["src/**/*"],

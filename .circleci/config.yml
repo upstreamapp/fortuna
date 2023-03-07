@@ -287,12 +287,12 @@ commands:
           name: Build Docker image
           command: |
             echo Using SHA $(cat tmp/gitsha | head -c7)
-            docker build -t << pipeline.parameters.ecr-repo >>:$(cat tmp/gitsha | head -c7) .
+            docker build -t << pipeline.parameters.ecr-repo >>:sha-$(cat tmp/gitsha | head -c7) .
       - run:
           name: Push Image to ECR
           command: |
             echo Using SHA $(cat tmp/gitsha | head -c7)
-            docker push << pipeline.parameters.ecr-repo >>:$(cat tmp/gitsha | head -c7)
+            docker push << pipeline.parameters.ecr-repo >>:sha-$(cat tmp/gitsha | head -c7)
 
   deploy-app:
     description: These steps deploy to a env.
@@ -320,9 +320,7 @@ commands:
 
       - run:
           name: Upgrade or install helm charts
-          command:
-            helm upgrade --install fortuna-<< parameters.kube-deploy-file-path >> fortuna-charts/fortuna-<< parameters.kube-deploy-file-path >>-chart
-
+          command: helm upgrade --install fortuna-<< parameters.kube-deploy-file-path >> fortuna-charts/fortuna-<< parameters.kube-deploy-file-path >>-chart
 
   tear-down:
     steps:

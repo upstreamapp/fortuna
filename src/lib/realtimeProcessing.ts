@@ -1,9 +1,9 @@
-import { SyncingState } from '../@types'
+import { ProcessingGoal, SyncingState } from '../@types'
 import updateSyncingState from '../db/operations/statusTable/updateSyncingState'
 import { REALTIME_START_REPEAT } from './constants'
 import { getEthClient } from './getEthClient'
 import Logger from './logger'
-import processBlocks, { ProcessingGoal } from './processBlocks'
+import processBlocks from './processBlocks'
 
 const logger = Logger(module)
 
