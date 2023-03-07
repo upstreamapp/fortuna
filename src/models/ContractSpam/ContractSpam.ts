@@ -14,7 +14,7 @@ import {
   createdAt: false,
   updatedAt: false
 })
-export class ContractInfo extends Model<Pick<ContractInfo, 'address'>> {
+export class ContractSpam extends Model<Pick<ContractSpam, 'address'>> {
   @PrimaryKey
   @AutoIncrement
   @Column(DataType.INTEGER)

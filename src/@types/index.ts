@@ -24,6 +24,8 @@ export interface ITokenInfo {
     name: Maybe<string>
     symbol: Maybe<string>
     decimals: Maybe<number>
+    ethBalance: Maybe<BigInt>
+    lastTransactionDate: Maybe<Date>
   }
   token: {
     id: Maybe<string>
@@ -100,4 +102,9 @@ export type TotalTokenValue = {
   address: string
   balance: string
   token_ids: string[]
+}
+
+export enum ProcessingGoal {
+  BACKFILL,
+  REALTIME
 }

@@ -1,7 +1,7 @@
 import SQS from 'aws-sdk/clients/sqs'
 import Bluebird from 'bluebird'
 import { chunk, uniqBy } from 'lodash'
-import { QUEUE_URL } from './constants'
+import { TOKEN_INFO_QUEUE_URL } from './constants'
 import Logger from './logger'
 import stats from './stats'
 
@@ -10,7 +10,7 @@ const sqs = new SQS({
   apiVersion: 'latest'
 })
 
-export interface IJobDetails {
+export interface ITokenInfoJobDetails {
   tokenAddress: string
   tokenId?: Maybe<string>
 }
@@ -25,9 +25,11 @@ export interface IJobDetails {
  *
  * @returns {Promise<boolean>} `Promise<boolean>` - A boolean indicating whether the tokens have been added to the queue successfully or not.
  */
-async function queueTokenInfoJobs(tokens: IJobDetails[]): Promise<boolean> {
+async function queueTokenInfoJobs(
+  tokens: ITokenInfoJobDetails[]
+): Promise<boolean> {
   try {
-    if (!QUEUE_URL || !tokens.length) {
+    if (!TOKEN_INFO_QUEUE_URL || !tokens.length) {
       return false
     }
 
@@ -41,7 +43,7 @@ async function queueTokenInfoJobs(tokens: IJobDetails[]): Promise<boolean> {
     await Bluebird.Promise.mapSeries(chunk(uniqueTokens, 10), chunk =>
       sqs
         .sendMessageBatch({
-          QueueUrl: QUEUE_URL!,
+          QueueUrl: TOKEN_INFO_QUEUE_URL!,
           Entries: chunk.map((data, index) => ({
             Id: `t-${index}`,
             MessageBody: JSON.stringify(data)

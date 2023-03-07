@@ -6,7 +6,9 @@ module.exports = {
   testTimeout: 20000,
   moduleNameMapper: {
     '^@utils(.*)$': '<rootDir>/src/utils$1',
-    '^@models(.*)$': '<rootDir>/src/models$1'
+    '^@models(.*)$': '<rootDir>/src/models$1',
+    '^@lib(.*)$': '<rootDir>/src/lib$1',
+    '^@types(.*)$': '<rootDir>/src/@types$1'
   },
   testRegex: '.test.(ts|js)$',
   rootDir: '.',

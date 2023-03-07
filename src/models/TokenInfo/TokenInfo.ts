@@ -7,9 +7,11 @@ import {
   DataType,
   PrimaryKey,
   UpdatedAt,
-  AutoIncrement
+  AutoIncrement,
+  ForeignKey,
+  BelongsTo
 } from 'sequelize-typescript'
-import { TokenType } from '../../@types'
+import { ContractInfo } from '@models/ContractInfo/ContractInfo'
 
 @Table({
   tableName: 'TokenInfo',
@@ -35,6 +37,10 @@ import { TokenType } from '../../@types'
           [Op.is]: null
         }
       }
+    },
+    {
+      name: 'token_info_contract_info_id_idx',
+      fields: ['contractInfoId']
     }
   ]
 })
@@ -43,10 +49,6 @@ export class TokenInfo extends Model<
     TokenInfo,
     | 'address'
     | 'tokenId'
-    | 'tokenType'
-    | 'contractName'
-    | 'symbol'
-    | 'decimals'
     | 'tokenName'
     | 'tokenDescription'
     | 'imageUrl'
@@ -55,6 +57,7 @@ export class TokenInfo extends Model<
     | 'animationUrl'
     | 'youtubeUrl'
     | 'tokenUri'
+    | 'contractInfoId'
   >
 > {
   @PrimaryKey
@@ -69,22 +72,6 @@ export class TokenInfo extends Model<
   @AllowNull(true)
   @Column(DataType.STRING)
   tokenId: Maybe<string>
-
-  @AllowNull(true)
-  @Column(DataType.ENUM(...Object.values(TokenType)))
-  tokenType: Maybe<TokenType>
-
-  @AllowNull(true)
-  @Column(DataType.STRING)
-  contractName: Maybe<string>
-
-  @AllowNull(true)
-  @Column(DataType.STRING)
-  symbol: Maybe<string>
-
-  @AllowNull(true)
-  @Column(DataType.INTEGER)
-  decimals: Maybe<number>
 
   @AllowNull(true)
   @Column(DataType.STRING)
@@ -117,6 +104,14 @@ export class TokenInfo extends Model<
   @AllowNull(true)
   @Column(DataType.TEXT)
   tokenUri: Maybe<string>
+
+  @ForeignKey(() => ContractInfo)
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
+  contractInfoId: number
+
+  @BelongsTo(() => ContractInfo, 'contractInfoId')
+  contractInfo: ContractInfo
 
   @UpdatedAt
   updatedAt: Date

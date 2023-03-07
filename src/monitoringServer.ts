@@ -1,3 +1,7 @@
+import 'dotenv/config'
+import 'module-alias/register'
+import 'source-map-support/register'
+
 import './lib/doom'
 import express from 'express'
 import { SyncingState } from './@types'

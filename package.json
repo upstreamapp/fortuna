@@ -10,9 +10,11 @@
     "monitoring": "node dist/monitoringServer.js",
     "querying": "node dist/queryingServer.js",
     "tokenInfo": "node dist/tokenInfoServer.js",
+    "contractInfo": "node dist/contractInfoServer.js",
     "start:monitoring": "doppler run -- npm run monitoring",
     "start:querying": "doppler run -- npm run querying",
     "start:tokenInfo": "doppler run -- npm run tokenInfo",
+    "start:contractInfo": "doppler run -- npm run contractInfo",
     "codegen:build": "tsc --esModuleInterop codegen/**/generator.ts",
     "migration:create": "npm run codegen:build && node codegen/migration/generator.js",
     "migration:up": "sequelize-cli db:migrate",
@@ -69,7 +71,9 @@
   },
   "_moduleAliases": {
     "@models": "dist/models",
-    "@utils": "dist/utils"
+    "@utils": "dist/utils",
+    "@lib": "dist/lib",
+    "@types": "dist/@types"
   },
   "repository": {
     "type": "git",
