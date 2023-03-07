@@ -20,7 +20,7 @@ import parseLog from './parseLog'
 import {
   queueUpdateExistingContractInfoByBlock,
   IContractInfoJobDetailsByBlock,
-  queueAllContractInfoRecords
+  queueAllContractInfoRecordsForBackfill
 } from './queueContractInfoJobs'
 import queueUpdateTokenInfo, {
   ITokenInfoJobDetails
@@ -159,7 +159,6 @@ export default async function processBlocks(
         }))
 
       await createNewContractInfoRecords(tokenContractJobDetails)
-      // await await queueUpdateContractInfoByTokenAddress(tokenContractJobDetails) // satisfies new contracts during backfill (early rejection on duplicate) and realtime
       await queueUpdateTokenInfo(tokenContractJobDetails)
       await createTokenTransferRecords(formattedTransactions)
 
@@ -181,7 +180,7 @@ export default async function processBlocks(
   }
 
   if (goalIsBackfill) {
-    await queueAllContractInfoRecords()
+    queueAllContractInfoRecordsForBackfill() // run in background while we also start realtime
     return
   }
 

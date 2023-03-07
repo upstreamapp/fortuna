@@ -76,22 +76,23 @@ export async function queueUpdateContractInfoByTokenAddress(
 }
 
 async function getLastContractInfoId() {
-  return (await ContractInfo.findOne({ order: [['id', 'desc']] }))?.id
+  return (await ContractInfo.findOne({ order: [['id', 'desc']] }))?.id || 0
 }
 
-export async function queueAllContractInfoRecords() {
+export async function queueAllContractInfoRecordsForBackfill() {
   let current = 0
-  const limit = 5000
-  let max = (await getLastContractInfoId()) || 0
-  while (current < max) {
+  const limit = 10000
+  let max = await getLastContractInfoId()
+  while (current <= max) {
     const contracts = await ContractInfo.findAll({
       attributes: {
         include: ['id', 'address']
       },
       where: {
         id: {
-          [Op.gte]: current
-        }
+          [Op.gt]: current
+        },
+        name: null
       },
       limit,
       order: [['id', 'asc']]
@@ -103,8 +104,10 @@ export async function queueAllContractInfoRecords() {
       })
     )
     await queueUpdateContractInfoByTokenAddress(queueTokens)
-    current = contracts[contracts.length - 1].id
-    max = (await getLastContractInfoId()) || max
+    if (contracts.length) {
+      current = contracts[contracts.length - 1].id
+    }
+    max = await getLastContractInfoId()
   }
 }
 
