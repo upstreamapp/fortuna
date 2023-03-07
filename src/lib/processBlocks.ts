@@ -18,9 +18,10 @@ import getLogs from './getLogs'
 import Logger from './logger'
 import parseLog from './parseLog'
 import {
+  queueAllContractInfoRecordsForBackfill,
   queueUpdateExistingContractInfoByBlock,
   IContractInfoJobDetailsByBlock,
-  queueAllContractInfoRecordsForBackfill
+  IContractInfoJobDetailsByTokenAddress
 } from './queueContractInfoJobs'
 import queueUpdateTokenInfo, {
   ITokenInfoJobDetails
@@ -152,11 +153,14 @@ export default async function processBlocks(
 
       stats.gauge(`insert_batch_size`, formattedTransactions.length)
 
-      const tokenContractJobDetails: Array<ITokenInfoJobDetails> =
-        formattedTransactions.map(tx => ({
-          tokenAddress: tx.address,
-          tokenId: tx.tokenId
-        }))
+      const tokenContractJobDetails: Array<
+        IContractInfoJobDetailsByTokenAddress | ITokenInfoJobDetails
+      > = formattedTransactions.map(tx => ({
+        tokenAddress: tx.address,
+        tokenId: tx.tokenId,
+        transferBlockNumber: tx.blockNumber,
+        goal
+      }))
 
       await createNewContractInfoRecords(tokenContractJobDetails)
       await queueUpdateTokenInfo(tokenContractJobDetails)

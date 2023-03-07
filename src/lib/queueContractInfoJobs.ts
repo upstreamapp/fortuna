@@ -24,12 +24,6 @@ export interface IContractInfoJobDetailsByBlock {
   blockNumber: number
 }
 
-export type TBackfill = {
-  howMany?: number
-  unproccessedOnly?: boolean
-  minId?: number
-}
-
 /**
  * Add token contracts into the queue for further processing.
  *

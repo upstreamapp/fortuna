@@ -7,10 +7,15 @@ import 'source-map-support/register'
 import { Op } from 'sequelize'
 import {
   IContractInfoJobDetailsByTokenAddress,
-  queueUpdateContractInfoByTokenAddress,
-  TBackfill
+  queueUpdateContractInfoByTokenAddress
 } from '@lib/queueContractInfoJobs'
 import { ContractInfo } from '@models/index'
+
+type TBackfill = {
+  howMany?: number
+  unproccessedOnly?: boolean
+  minId?: number
+}
 
 async function queueContractInfoBackfill({
   howMany,

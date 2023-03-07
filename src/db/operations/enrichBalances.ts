@@ -1,10 +1,14 @@
 import { Op } from 'sequelize'
 import { IBalance, IEnrichedBalance, ITokenInfo } from '../../@types'
-import queueTokenInfoJobs, {
+import queueUpdateTokenInfo, {
   ITokenInfoJobDetails
 } from '../../lib/queueTokenInfoJobs'
-import { IContractInfoJobDetailsByTokenAddress } from '@lib/queueContractInfoJobs'
-import { ContractInfo, TokenInfo } from '@models/index'
+import { TokenInfo } from '../../models/TokenInfo/TokenInfo'
+import {
+  queueUpdateContractInfoByTokenAddress,
+  IContractInfoJobDetailsByTokenAddress
+} from '@lib/queueContractInfoJobs'
+import { ContractInfo } from '@models/index'
 
 /**
  * Map an instance of `TokenInfo` into `ITokenInfo`.
@@ -85,7 +89,8 @@ async function enrichBalances(
       tokenAddress: missingToken.tokenAddress,
       tokenId: missingToken.tokenId
     }))
-    await queueTokenInfoJobs(jobDetails)
+    await queueUpdateContractInfoByTokenAddress(jobDetails)
+    await queueUpdateTokenInfo(jobDetails)
   }
 
   return balances.map(balance => ({

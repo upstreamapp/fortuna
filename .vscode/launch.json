@@ -54,7 +54,7 @@
       "outFiles": ["${workspaceFolder}/dist/**/*.js"],
       "outputCapture": "std",
       "internalConsoleOptions": "openOnSessionStart",
-      "args": ["0x1036a545d8dC68B2372E0F85810A4539399B0D7A", "5832978"]
+      "args": ["0x1036a545d8dC68B2372E0F85810A4539399B0D7A"]
     },
     {
       "type": "node",
