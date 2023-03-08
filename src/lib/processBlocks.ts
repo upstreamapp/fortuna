@@ -200,7 +200,7 @@ async function createNewContractInfoRecords(
   tokens: { tokenAddress: string }[]
 ) {
   const dateStart = Date.now()
-  // insert each token transfer into the TokenTransfer table if it doesn't already exist. If it exists, skip it.
+  // insert each token address into the ContractInfo table if it doesn't already exist. If it exists, skip it.
   await Bluebird.Promise.mapSeries(
     chunk(
       uniqBy(tokens, token => token.tokenAddress).map(token => [
