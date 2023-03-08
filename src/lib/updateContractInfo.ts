@@ -74,7 +74,7 @@ export async function updateExistingContractInfoByBlock({
 /**
  * Update, or add, a contracts's metadata into the `ContractInfo` table.
  * @remarks This function not only gets metadata from the contract in the blockchain itself.
- * @param {transferObject} transferObject - {tokenAddress: The address of the token, transferBlockNumber: Optional transfer block number, goal: Optional Current goal of the process, fullUpdate: Optional boolean whether to perform full update}
+ * @param {transferObject} transferObject - {tokenAddress: The address of the token, goal: Optional Current goal of the process}
  * @param {blockWithTransactions} blockWithTransactions - The block (with transactions) when updating contractinfo by block.
  * @returns {Promise<void>} This function does not return any useful value.
  */
@@ -117,14 +117,13 @@ export async function updateContractInfoByTokenAddress(
     const client = await getEthClient()
     const contract = new Contract(address, abi, client)
 
-    const [contractName, symbol, decimals, tokenType, ethBalance, block] =
+    const [contractName, symbol, decimals, tokenType, ethBalance] =
       await Promise.all([
         updateSpec ? safeCall<string>(contract, 'name') : contractInfo.name,
         updateSpec ? safeCall<string>(contract, 'symbol') : contractInfo.symbol,
         updateSpec ? safeCall<BN>(contract, 'decimals') : contractInfo.decimals,
         updateSpec ? getContractSpec(address) : contractInfo.tokenType,
-        client.getBalance(address),
-        updateBlockMetrics ? blockWithTransactions : undefined
+        client.getBalance(address)
       ])
 
     if (updateSpec) {
@@ -140,8 +139,8 @@ export async function updateContractInfoByTokenAddress(
 
     if (updateBlockMetrics) {
       contractInfo.lastTransactionBlock = blockWithTransactions.number
-      if (block?.timestamp) {
-        const blockTimestamp = new Date(block.timestamp * 1000)
+      if (blockWithTransactions.timestamp) {
+        const blockTimestamp = new Date(blockWithTransactions.timestamp * 1000)
         if (
           !contractInfo.lastTransactionAt ||
           isAfter(blockTimestamp, contractInfo.lastTransactionAt)

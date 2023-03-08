@@ -7,7 +7,6 @@ import 'source-map-support/register'
 import { Op } from 'sequelize'
 import {
   IContractInfoJobDetailsByTokenAddress,
-  // queueAllContractInfoRecordsForBackfill,
   queueContractInfoByTokenAddressJobs
 } from '@lib/queueContractInfoJobs'
 import { ContractInfo } from '@models/index'
@@ -69,7 +68,6 @@ async function main() {
   }
 
   await queueContractInfoBackfill({ howMany, unproccessedOnly, minId })
-  // await queueAllContractInfoRecordsForBackfill()
 }
 
 main()

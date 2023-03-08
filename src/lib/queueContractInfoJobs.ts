@@ -73,13 +73,11 @@ async function getLastContractInfoId() {
 
 export async function queueAllContractInfoRecordsForBackfill() {
   let current = 1
-  const limit = 10000
-  let max = await getLastContractInfoId()
-  while (current <= max) {
+  const limit = 50000
+  let maxId = await getLastContractInfoId()
+  while (current <= maxId) {
     const contracts = await ContractInfo.findAll({
-      attributes: {
-        include: ['id', 'address']
-      },
+      attributes: ['id', 'address'],
       where: {
         id: {
           [Op.gte]: current
@@ -92,19 +90,20 @@ export async function queueAllContractInfoRecordsForBackfill() {
 
     const queueTokens: IContractInfoJobDetailsByTokenAddress[] = contracts.map(
       contract => ({
-        tokenAddress: contract.address
+        tokenAddress: contract.address,
+        goal: ProcessingGoal.BACKFILL
       })
     )
     logger.debug(
-      `Backfill: queing from contractInfo id: ${current} | length: ${queueTokens.length}`
+      `Backfill: queing from contractInfo Id: ${current} | queueLength: ${queueTokens.length}, maxId = ${maxId} to go to`
     )
-    // await queueUpdateContractInfoByTokenAddress(queueTokens)
+    await queueContractInfoByTokenAddressJobs(queueTokens)
     if (contracts.length) {
       current = contracts[contracts.length - 1].id + 1
     } else {
-      current = max + 1
+      current = maxId + 1
     }
-    max = await getLastContractInfoId()
+    maxId = await getLastContractInfoId()
   }
 }
 
