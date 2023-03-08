@@ -61,7 +61,7 @@ export async function updateExistingContractInfoByBlock({
   await Bluebird.Promise.map(
     possibleContractAddressUpdates,
     contractInfo =>
-      queueContractInfoByTokenAddressJobs(
+      updateContractInfoByTokenAddress(
         {
           tokenAddress: contractInfo.address
         },
@@ -78,10 +78,10 @@ export async function updateExistingContractInfoByBlock({
  * @param {blockWithTransactions} blockWithTransactions - The block (with transactions) when updating contractinfo by block.
  * @returns {Promise<void>} This function does not return any useful value.
  */
-export async function queueContractInfoByTokenAddressJobs(
+export async function updateContractInfoByTokenAddress(
   { tokenAddress, goal }: IContractInfoJobDetailsByTokenAddress,
   blockWithTransactions?: BlockWithTransactions
-): Promise<ContractInfo> {
+): Promise<void> {
   const address = tokenAddress.toLowerCase()
   const startTime = Date.now()
   stats.increment('update_contract_called')
@@ -95,7 +95,7 @@ export async function queueContractInfoByTokenAddressJobs(
 
     if (!created && goal === ProcessingGoal.BACKFILL) {
       stats.increment('update_contract_backfill')
-      return contractInfo
+      return
     }
 
     const updateSpec =
@@ -111,7 +111,7 @@ export async function queueContractInfoByTokenAddressJobs(
 
     if (!updateSpec && !updateBlockMetrics && contractInfo.ethBalance) {
       stats.increment('update_contract_not_stale')
-      return contractInfo
+      return
     }
 
     const client = await getEthClient()
@@ -154,7 +154,7 @@ export async function queueContractInfoByTokenAddressJobs(
 
     await contractInfo.save()
     stats.histogram('update_contract_finished', Date.now() - startTime)
-    return contractInfo
+    return
   } catch (err) {
     logger.warn(`Failed at updateContractInfo(${tokenAddress}, ${err}`)
     stats.histogram('update_contract_failed', Date.now() - startTime)

@@ -20,8 +20,8 @@ import parseLog from './parseLog'
 import {
   queueAllContractInfoRecordsForBackfill,
   queueUpdateExistingContractInfoByBlockJobs,
-  IContractInfoJobDetailsByBlock,
-  IContractInfoJobDetailsByTokenAddress
+  IContractInfoJobDetailsByTokenAddress,
+  IContractInfoJobDetailsByBlock
 } from './queueContractInfoJobs'
 import queueTokenInfoJobs, { ITokenInfoJobDetails } from './queueTokenInfoJobs'
 import stats from './stats'

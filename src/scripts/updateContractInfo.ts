@@ -4,12 +4,12 @@ import 'dotenv/config'
 import 'module-alias/register'
 import 'source-map-support/register'
 
-import { queueContractInfoByTokenAddressJobs } from '@lib/updateContractInfo'
+import { updateContractInfoByTokenAddress } from '@lib/updateContractInfo'
 
 async function main() {
   const contractAddress = process.argv[3]
 
-  await queueContractInfoByTokenAddressJobs({
+  await updateContractInfoByTokenAddress({
     tokenAddress: contractAddress
   })
 }
