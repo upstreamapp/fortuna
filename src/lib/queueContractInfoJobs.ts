@@ -82,7 +82,7 @@ export async function queueAllContractInfoRecordsForBackfill() {
         id: {
           [Op.gte]: current
         },
-        name: null
+        updatedMetaInfoAt: null
       },
       limit,
       order: [['id', 'asc']]
