@@ -182,7 +182,7 @@ export default async function processBlocks(
   }
 
   if (goalIsBackfill) {
-    queueAllContractInfoRecordsForBackfill() // run in background while we also start realtime
+    queueAllContractInfoRecordsForBackfill() // run in background while we also start realtime (no await)
     return
   }
 
