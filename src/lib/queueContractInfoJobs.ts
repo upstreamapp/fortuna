@@ -15,9 +15,7 @@ const sqs = new SQS({
 
 export interface IContractInfoJobDetailsByTokenAddress {
   tokenAddress: string
-  transferBlockNumber?: Maybe<number>
   goal?: Maybe<ProcessingGoal>
-  fullUpdate?: boolean
 }
 
 export interface IContractInfoJobDetailsByBlock {
@@ -34,7 +32,7 @@ export interface IContractInfoJobDetailsByBlock {
  *
  * @returns {Promise<boolean>} `Promise<boolean>` - A boolean indicating whether the tokens have been added to the queue successfully or not.
  */
-export async function queueUpdateContractInfoByTokenAddress(
+export async function queueContractInfoByTokenAddressJobs(
   tokens: IContractInfoJobDetailsByTokenAddress[]
 ): Promise<boolean> {
   try {
@@ -74,7 +72,7 @@ async function getLastContractInfoId() {
 }
 
 export async function queueAllContractInfoRecordsForBackfill() {
-  let current = 0
+  let current = 1
   const limit = 10000
   let max = await getLastContractInfoId()
   while (current <= max) {
@@ -84,7 +82,7 @@ export async function queueAllContractInfoRecordsForBackfill() {
       },
       where: {
         id: {
-          [Op.gt]: current
+          [Op.gte]: current
         },
         name: null
       },
@@ -97,15 +95,20 @@ export async function queueAllContractInfoRecordsForBackfill() {
         tokenAddress: contract.address
       })
     )
-    await queueUpdateContractInfoByTokenAddress(queueTokens)
+    logger.debug(
+      `Backfill: queing from contractInfo id: ${current} | length: ${queueTokens.length}`
+    )
+    // await queueUpdateContractInfoByTokenAddress(queueTokens)
     if (contracts.length) {
-      current = contracts[contracts.length - 1].id
+      current = contracts[contracts.length - 1].id + 1
+    } else {
+      current = max + 1
     }
     max = await getLastContractInfoId()
   }
 }
 
-export async function queueUpdateExistingContractInfoByBlock(
+export async function queueUpdateExistingContractInfoByBlockJobs(
   blocks: IContractInfoJobDetailsByBlock[]
 ) {
   try {

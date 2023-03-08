@@ -17,7 +17,7 @@ import {
   IContractInfoJobDetailsByTokenAddress
 } from '@lib/queueContractInfoJobs'
 import {
-  updateContractInfoByTokenAddress,
+  queueContractInfoByTokenAddressJobs,
   updateExistingContractInfoByBlock
 } from '@lib/updateContractInfo'
 
@@ -54,7 +54,7 @@ async function consumeQueue(): Promise<undefined> {
       if (isContractInfoJobLatestBlockType(data)) {
         await updateExistingContractInfoByBlock(data)
       } else {
-        await updateContractInfoByTokenAddress(data)
+        await queueContractInfoByTokenAddressJobs(data)
       }
     }
   })

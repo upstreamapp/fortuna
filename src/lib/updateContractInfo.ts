@@ -61,10 +61,9 @@ export async function updateExistingContractInfoByBlock({
   await Bluebird.Promise.map(
     possibleContractAddressUpdates,
     contractInfo =>
-      updateContractInfoByTokenAddress(
+      queueContractInfoByTokenAddressJobs(
         {
-          tokenAddress: contractInfo.address,
-          transferBlockNumber: blockNumber
+          tokenAddress: contractInfo.address
         },
         blockWithTransactions
       ),
@@ -79,13 +78,8 @@ export async function updateExistingContractInfoByBlock({
  * @param {blockWithTransactions} blockWithTransactions - The block (with transactions) when updating contractinfo by block.
  * @returns {Promise<void>} This function does not return any useful value.
  */
-export async function updateContractInfoByTokenAddress(
-  {
-    tokenAddress,
-    transferBlockNumber,
-    goal,
-    fullUpdate = false
-  }: IContractInfoJobDetailsByTokenAddress,
+export async function queueContractInfoByTokenAddressJobs(
+  { tokenAddress, goal }: IContractInfoJobDetailsByTokenAddress,
   blockWithTransactions?: BlockWithTransactions
 ): Promise<ContractInfo> {
   const address = tokenAddress.toLowerCase()
@@ -105,16 +99,15 @@ export async function updateContractInfoByTokenAddress(
     }
 
     const updateSpec =
-      fullUpdate ||
       created ||
       !contractInfo.updatedMetaInfoAt ||
       differenceInDays(Date.now(), contractInfo.updatedMetaInfoAt) >=
         CONTRACT_INFO_MAX_AGE_IN_DAYS
 
     const updateBlockMetrics =
-      !!transferBlockNumber &&
+      !!blockWithTransactions &&
       (!contractInfo.lastTransactionBlock ||
-        transferBlockNumber > contractInfo.lastTransactionBlock)
+        blockWithTransactions.number > contractInfo.lastTransactionBlock)
 
     if (!updateSpec && !updateBlockMetrics && contractInfo.ethBalance) {
       stats.increment('update_contract_not_stale')
@@ -131,9 +124,7 @@ export async function updateContractInfoByTokenAddress(
         updateSpec ? safeCall<BN>(contract, 'decimals') : contractInfo.decimals,
         updateSpec ? getContractSpec(address) : contractInfo.tokenType,
         client.getBalance(address),
-        updateBlockMetrics
-          ? blockWithTransactions || client.getBlock(transferBlockNumber)
-          : undefined
+        updateBlockMetrics ? blockWithTransactions : undefined
       ])
 
     if (updateSpec) {
@@ -148,7 +139,7 @@ export async function updateContractInfoByTokenAddress(
     }
 
     if (updateBlockMetrics) {
-      contractInfo.lastTransactionBlock = transferBlockNumber
+      contractInfo.lastTransactionBlock = blockWithTransactions.number
       if (block?.timestamp) {
         const blockTimestamp = new Date(block.timestamp * 1000)
         if (
@@ -168,9 +159,7 @@ export async function updateContractInfoByTokenAddress(
     logger.warn(`Failed at updateContractInfo(${tokenAddress}, ${err}`)
     stats.histogram('update_contract_failed', Date.now() - startTime)
     throw new Error(
-      `Failed at updateContractInfo:[${tokenAddress}] block: [${
-        transferBlockNumber || blockWithTransactions?.number
-      }]`
+      `Failed at updateContractInfo:[${tokenAddress}] block: [${blockWithTransactions?.number}]`
     )
   }
 }

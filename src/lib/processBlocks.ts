@@ -19,13 +19,11 @@ import Logger from './logger'
 import parseLog from './parseLog'
 import {
   queueAllContractInfoRecordsForBackfill,
-  queueUpdateExistingContractInfoByBlock,
+  queueUpdateExistingContractInfoByBlockJobs,
   IContractInfoJobDetailsByBlock,
   IContractInfoJobDetailsByTokenAddress
 } from './queueContractInfoJobs'
-import queueUpdateTokenInfo, {
-  ITokenInfoJobDetails
-} from './queueTokenInfoJobs'
+import queueTokenInfoJobs, { ITokenInfoJobDetails } from './queueTokenInfoJobs'
 import stats from './stats'
 
 type FormattedTransaction = {
@@ -163,7 +161,7 @@ export default async function processBlocks(
       }))
 
       await createNewContractInfoRecords(tokenContractJobDetails)
-      await queueUpdateTokenInfo(tokenContractJobDetails)
+      await queueTokenInfoJobs(tokenContractJobDetails)
       await createTokenTransferRecords(formattedTransactions)
 
       const highestBlock = formattedTransactions.at(-1)?.blockNumber
@@ -195,7 +193,7 @@ export default async function processBlocks(
       blockNumber: block
     })
   }
-  await queueUpdateExistingContractInfoByBlock(blockContractJobDetails)
+  await queueUpdateExistingContractInfoByBlockJobs(blockContractJobDetails)
 }
 
 async function createNewContractInfoRecords(

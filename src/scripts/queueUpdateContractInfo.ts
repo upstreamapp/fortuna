@@ -7,7 +7,8 @@ import 'source-map-support/register'
 import { Op } from 'sequelize'
 import {
   IContractInfoJobDetailsByTokenAddress,
-  queueUpdateContractInfoByTokenAddress
+  // queueAllContractInfoRecordsForBackfill,
+  queueContractInfoByTokenAddressJobs
 } from '@lib/queueContractInfoJobs'
 import { ContractInfo } from '@models/index'
 
@@ -34,7 +35,7 @@ async function queueContractInfoBackfill({
             : {}),
           ...(unproccessedOnly
             ? {
-                lastTransactionBlock: { [Op.is]: null }
+                updatedMetaInfoAt: null
               }
             : undefined)
         }
@@ -51,7 +52,7 @@ async function queueContractInfoBackfill({
       tokenAddress: contract.address
     })
   )
-  await queueUpdateContractInfoByTokenAddress(queueTokens)
+  await queueContractInfoByTokenAddressJobs(queueTokens)
 }
 
 async function main() {
@@ -68,6 +69,7 @@ async function main() {
   }
 
   await queueContractInfoBackfill({ howMany, unproccessedOnly, minId })
+  // await queueAllContractInfoRecordsForBackfill()
 }
 
 main()
