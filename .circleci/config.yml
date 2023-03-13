@@ -256,6 +256,33 @@ commands:
       - run:
           name: Build node app
           command: npm run build
+
+  run-tests-and-upload-timings:
+    description: We will run the tests (in parrallel) and upload the timing results from jest-junit
+    steps:
+      - setup-doppler
+      - run:
+          command: mkdir ~/junit
+      - run: #
+          name: Run Tests
+          command: |
+            TESTFILES=$(circleci tests glob "src/**/*.test.ts" | circleci tests split --split-by=timings)
+
+            ./doppler run --token $DOPPLER_TEST_SECRET_TOKEN --command="npm run migration:up"
+            ./doppler run --token $DOPPLER_TEST_SECRET_TOKEN --command="npm run test:quick -- --runTestsByPath $(echo $TESTFILES)"
+      - run:
+          command: cp junit.xml ~/junit/
+          when: always
+      - store_test_results:
+          path: ~/junit
+  setup-doppler:
+    steps:
+      - run:
+          name: Install Doppler CLI
+          command: |
+            sudo apt-get install -y gnupg
+            (curl -Ls https://cli.doppler.com/install.sh || wget -qO- https://cli.doppler.com/install.sh) | sh -s -- --no-install --no-package-manager
+
   setup-wireguard:
     steps:
       - run:
@@ -366,6 +393,22 @@ jobs:
           name: Lint
           command: npm run lint
       # - notify-fail
+  #-----------
+  test:
+    parallelism: 2
+    docker:
+      - image: cimg/node:<< pipeline.parameters.node-version >>
+      - image: postgis/postgis:latest
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mainnet
+    resource_class: medium
+    steps:
+      - attach_workspace:
+          at: .
+      - checkout-deploy-branch
+      - run-tests-and-upload-timings
 
   #------------
   build-and-push-image:
@@ -413,6 +456,10 @@ workflows:
           requires:
             - setup-base-and-build
           context: *env-contexts
+      - test:
+          requires:
+            - setup-base-and-build
+          context: *env-contexts
 
   #-----------------
   deploy:
@@ -426,6 +473,10 @@ workflows:
           requires:
             - setup-base-and-build
           context: *env-contexts
+      - test:
+          requires:
+            - setup-base-and-build
+          context: *env-contexts
       - build-and-push-image:
           requires:
             - setup-base-and-build
@@ -435,5 +486,6 @@ workflows:
       - deploy:
           requires:
             - run-lint
+            - test
             - build-and-push-image
           context: *env-contexts
