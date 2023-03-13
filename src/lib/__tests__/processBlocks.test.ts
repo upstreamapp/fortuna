@@ -1,13 +1,13 @@
 import { ethers } from 'ethers'
-import { SyncingState } from '../../@types'
+import { ProcessingGoal, SyncingState } from '../../@types'
 import getStatus from '../../db/operations/statusTable/getStatus'
 import updateSyncingState from '../../db/operations/statusTable/updateSyncingState'
-import { mockCreateLog, testArgs } from '../../utils/__tests__/generators/log'
+import { mockCreateLog } from '../../utils/__tests__/generators/log'
 import mockCreateStatus from '../../utils/__tests__/generators/status'
 import { handleDatabaseConnections } from '../../utils/__tests__/utils'
 import { getEthClient } from '../getEthClient'
 import getLogs from '../getLogs'
-import processBlocks, { ProcessingGoal } from '../processBlocks'
+import processBlocks from '../processBlocks'
 
 jest.mock('../getEthClient')
 jest.mock('../getLogs')

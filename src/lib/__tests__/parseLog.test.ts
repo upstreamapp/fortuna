@@ -1,4 +1,3 @@
-import { faker } from '@faker-js/faker'
 import { abi } from '../../common/abi'
 import { mockCreateLog, testArgs } from '../../utils/__tests__/generators/log'
 import { handleDatabaseConnections } from '../../utils/__tests__/utils'

@@ -1,6 +1,5 @@
 import substituteTokenID from '../../lib/substituteTokenID'
 import { handleDatabaseConnections } from '../../utils/__tests__/utils'
-import fetchRemoteMetadata from '../fetchRemoteMetadata'
 
 describe('substituteTokenID', () => {
   handleDatabaseConnections()

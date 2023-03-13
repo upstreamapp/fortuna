@@ -1,6 +1,10 @@
 import { faker } from '@faker-js/faker'
+import moment from 'moment'
 import { TokenType } from '../../@types'
 import enrichBalances from '../../db/operations/enrichBalances'
+import { ContractInfo } from '../../models/ContractInfo/ContractInfo'
+import { TokenInfo } from '../../models/TokenInfo/TokenInfo'
+import mockCreateContractInfo from '../../utils/__tests__/generators/contractInfo'
 import mockCreateTokenInfo from '../../utils/__tests__/generators/tokenInfo'
 import mockCreateTokenTransfer from '../../utils/__tests__/generators/tokenTransfer'
 import { handleDatabaseConnections } from '../../utils/__tests__/utils'
@@ -8,54 +12,25 @@ import { handleDatabaseConnections } from '../../utils/__tests__/utils'
 describe('enrichBalances', () => {
   const userAddress = '0xec8C4a3644338a534940BA4858Cdb01432dec075'
   const tokenAddress = '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'
-  const token1Fields = {
-    contractName: faker.random.words(),
-    tokenId: '1',
-    tokenType: TokenType.ERC_721,
-    address: tokenAddress,
-    symbol: faker.random.alphaNumeric(3),
-    tokenName: faker.random.words(),
-    tokenDescription: faker.random.words(),
-    imageUrl: faker.random.alphaNumeric(10),
-    tokenUri: faker.random.alphaNumeric(10)
-  }
-  const token2Fields = {
-    contractName: faker.random.words(),
-    tokenId: '2',
-    tokenType: TokenType.ERC_721,
-    address: tokenAddress,
-    symbol: faker.random.alphaNumeric(3),
-    tokenName: faker.random.words(),
-    tokenDescription: faker.random.words(),
-    imageUrl: faker.random.alphaNumeric(10),
-    tokenUri: faker.random.alphaNumeric(10)
-  }
-  const token3Fields = {
-    contractName: faker.random.words(),
-    tokenId: '3',
-    tokenType: TokenType.ERC_721,
-    address: tokenAddress,
-    symbol: faker.random.alphaNumeric(3),
-    tokenName: faker.random.words(),
-    tokenDescription: faker.random.words(),
-    imageUrl: faker.random.alphaNumeric(10),
-    tokenUri: faker.random.alphaNumeric(10)
-  }
-  const token4Fields = {
-    contractName: faker.random.words(),
-    tokenId: '4',
-    tokenType: TokenType.ERC_721,
-    address: tokenAddress,
-    symbol: faker.random.alphaNumeric(3),
-    tokenName: faker.random.words(),
-    tokenDescription: faker.random.words(),
-    imageUrl: faker.random.alphaNumeric(10),
-    tokenUri: faker.random.alphaNumeric(10)
-  }
+
+  const transactionDate = moment().subtract(1, 'days').toDate()
+  let contractInfo: ContractInfo
+  let tokenInfo1: TokenInfo
+  let tokenInfo2: TokenInfo
+  let tokenInfo3: TokenInfo
+  let tokenInfo4: TokenInfo
 
   handleDatabaseConnections()
 
   beforeEach(async () => {
+    contractInfo = await mockCreateContractInfo({
+      address: tokenAddress,
+      symbol: faker.random.alphaNumeric(3),
+      name: faker.random.words(),
+      tokenType: TokenType.ERC_721,
+      ethBalance: BigInt(12),
+      lastTransactionAt: transactionDate
+    })
     await mockCreateTokenTransfer({
       tokenType: TokenType.ERC_721,
       toAddress: userAddress,
@@ -76,21 +51,46 @@ describe('enrichBalances', () => {
       toAddress: userAddress,
       tokenAddress
     })
-    await mockCreateTokenInfo({
+    tokenInfo1 = await mockCreateTokenInfo({
       tokenAddress,
-      ...token1Fields
+      contractInfoId: contractInfo.id,
+      tokenId: '1',
+      address: tokenAddress,
+      tokenName: faker.random.words(),
+      tokenDescription: faker.random.words(),
+      imageUrl: faker.random.alphaNumeric(10),
+      tokenUri: faker.random.alphaNumeric(10)
     })
-    await mockCreateTokenInfo({
+    tokenInfo2 = await mockCreateTokenInfo({
       tokenAddress,
-      ...token2Fields
+      contractInfoId: contractInfo.id,
+
+      tokenId: '2',
+      address: tokenAddress,
+      tokenName: faker.random.words(),
+      tokenDescription: faker.random.words(),
+      imageUrl: faker.random.alphaNumeric(10),
+      tokenUri: faker.random.alphaNumeric(10)
     })
-    await mockCreateTokenInfo({
+    tokenInfo3 = await mockCreateTokenInfo({
       tokenAddress,
-      ...token3Fields
+      contractInfoId: contractInfo.id,
+      tokenId: '3',
+      address: tokenAddress,
+      tokenName: faker.random.words(),
+      tokenDescription: faker.random.words(),
+      imageUrl: faker.random.alphaNumeric(10),
+      tokenUri: faker.random.alphaNumeric(10)
     })
-    await mockCreateTokenInfo({
+    tokenInfo4 = await mockCreateTokenInfo({
       tokenAddress,
-      ...token4Fields
+      contractInfoId: contractInfo.id,
+      tokenId: '4',
+      address: tokenAddress,
+      tokenName: faker.random.words(),
+      tokenDescription: faker.random.words(),
+      imageUrl: faker.random.alphaNumeric(10),
+      tokenUri: faker.random.alphaNumeric(10)
     })
   })
 
@@ -100,25 +100,25 @@ describe('enrichBalances', () => {
         tokenAddress,
         walletAddress: userAddress,
         balance: '1',
-        tokenId: token1Fields.tokenId
+        tokenId: tokenInfo1.tokenId
       },
       {
         tokenAddress,
         walletAddress: userAddress,
         balance: '1',
-        tokenId: token2Fields.tokenId
+        tokenId: tokenInfo2.tokenId
       },
       {
         tokenAddress,
         walletAddress: userAddress,
         balance: '1',
-        tokenId: token3Fields.tokenId
+        tokenId: tokenInfo3.tokenId
       },
       {
         tokenAddress,
         walletAddress: userAddress,
         balance: '1',
-        tokenId: token4Fields.tokenId
+        tokenId: tokenInfo4.tokenId
       }
     ])
 
@@ -134,22 +134,25 @@ describe('enrichBalances', () => {
     expect(token1).toEqual(
       expect.objectContaining({
         contract: {
-          address: token1Fields.address,
-          type: token1Fields.tokenType,
-          name: token1Fields.contractName,
-          symbol: token1Fields.symbol,
-          decimals: null
+          address: contractInfo.address,
+          type: contractInfo.tokenType,
+          name: contractInfo.name,
+          symbol: contractInfo.symbol,
+          decimals: null,
+          ethBalance: BigInt(12),
+          lastTransactionDate: transactionDate
         },
         token: {
-          id: token1Fields.tokenId,
-          name: token1Fields.tokenName,
-          description: token1Fields.tokenDescription,
-          imageUrl: token1Fields.imageUrl,
+          id: tokenInfo1.tokenId,
+          name: tokenInfo1.tokenName,
+          description: tokenInfo1.tokenDescription,
+          imageUrl: tokenInfo1.imageUrl,
           imageData: null,
           externalUrl: null,
           animationUrl: null,
           youtubeUrl: null
-        }
+        },
+        lastUpdated: tokenInfo1.updatedAt
       })
     )
     expect(Object.keys(token2)).toEqual(
@@ -158,22 +161,25 @@ describe('enrichBalances', () => {
     expect(token2).toEqual(
       expect.objectContaining({
         contract: {
-          address: token2Fields.address,
-          type: token2Fields.tokenType,
-          name: token2Fields.contractName,
-          symbol: token2Fields.symbol,
-          decimals: null
+          address: tokenInfo2.address,
+          type: contractInfo.tokenType,
+          name: contractInfo.name,
+          symbol: contractInfo.symbol,
+          decimals: null,
+          ethBalance: BigInt(12),
+          lastTransactionDate: transactionDate
         },
         token: {
-          id: token2Fields.tokenId,
-          name: token2Fields.tokenName,
-          description: token2Fields.tokenDescription,
-          imageUrl: token2Fields.imageUrl,
+          id: tokenInfo2.tokenId,
+          name: tokenInfo2.tokenName,
+          description: tokenInfo2.tokenDescription,
+          imageUrl: tokenInfo2.imageUrl,
           imageData: null,
           externalUrl: null,
           animationUrl: null,
           youtubeUrl: null
-        }
+        },
+        lastUpdated: tokenInfo2.updatedAt
       })
     )
     expect(Object.keys(token3)).toEqual(
@@ -182,22 +188,25 @@ describe('enrichBalances', () => {
     expect(token3).toEqual(
       expect.objectContaining({
         contract: {
-          address: token3Fields.address,
-          type: token3Fields.tokenType,
-          name: token3Fields.contractName,
-          symbol: token3Fields.symbol,
-          decimals: null
+          address: contractInfo.address,
+          type: contractInfo.tokenType,
+          name: contractInfo.name,
+          symbol: contractInfo.symbol,
+          decimals: null,
+          ethBalance: BigInt(12),
+          lastTransactionDate: transactionDate
         },
         token: {
-          id: token3Fields.tokenId,
-          name: token3Fields.tokenName,
-          description: token3Fields.tokenDescription,
-          imageUrl: token3Fields.imageUrl,
+          id: tokenInfo3.tokenId,
+          name: tokenInfo3.tokenName,
+          description: tokenInfo3.tokenDescription,
+          imageUrl: tokenInfo3.imageUrl,
           imageData: null,
           externalUrl: null,
           animationUrl: null,
           youtubeUrl: null
-        }
+        },
+        lastUpdated: tokenInfo3.updatedAt
       })
     )
     expect(Object.keys(token4)).toEqual(
@@ -206,22 +215,25 @@ describe('enrichBalances', () => {
     expect(token4).toEqual(
       expect.objectContaining({
         contract: {
-          address: token4Fields.address,
-          type: token4Fields.tokenType,
-          name: token4Fields.contractName,
-          symbol: token4Fields.symbol,
-          decimals: null
+          address: contractInfo.address,
+          type: contractInfo.tokenType,
+          name: contractInfo.name,
+          symbol: contractInfo.symbol,
+          decimals: null,
+          ethBalance: BigInt(12),
+          lastTransactionDate: transactionDate
         },
         token: {
-          id: token4Fields.tokenId,
-          name: token4Fields.tokenName,
-          description: token4Fields.tokenDescription,
-          imageUrl: token4Fields.imageUrl,
+          id: tokenInfo4.tokenId,
+          name: tokenInfo4.tokenName,
+          description: tokenInfo4.tokenDescription,
+          imageUrl: tokenInfo4.imageUrl,
           imageData: null,
           externalUrl: null,
           animationUrl: null,
           youtubeUrl: null
-        }
+        },
+        lastUpdated: tokenInfo4.updatedAt
       })
     )
   })
