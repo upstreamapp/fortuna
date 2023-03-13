@@ -1,7 +1,14 @@
 import { Op } from 'sequelize'
 import { IBalance, IEnrichedBalance, ITokenInfo } from '../../@types'
-import queueTokenInfoJobs from '../../lib/queueTokenInfoJobs'
+import queueTokenInfoJobs, {
+  ITokenInfoJobDetails
+} from '../../lib/queueTokenInfoJobs'
 import { TokenInfo } from '../../models/TokenInfo/TokenInfo'
+import {
+  queueContractInfoByTokenAddressJobs,
+  IContractInfoJobDetailsByTokenAddress
+} from '@lib/queueContractInfoJobs'
+import { ContractInfo } from '@models/index'
 
 /**
  * Map an instance of `TokenInfo` into `ITokenInfo`.
@@ -18,10 +25,12 @@ function tokenInfoMapper(tokenInfo: Maybe<TokenInfo>): Maybe<ITokenInfo> {
   return {
     contract: {
       address: tokenInfo.address,
-      type: tokenInfo.tokenType,
-      name: tokenInfo.contractName,
-      symbol: tokenInfo.symbol,
-      decimals: tokenInfo.decimals
+      type: tokenInfo.contractInfo.tokenType,
+      name: tokenInfo.contractInfo.name,
+      symbol: tokenInfo.contractInfo.symbol,
+      decimals: tokenInfo.contractInfo.decimals,
+      ethBalance: tokenInfo.contractInfo.ethBalance,
+      lastTransactionDate: tokenInfo.contractInfo.lastTransactionAt
     },
     token: {
       id: tokenInfo.tokenId,
@@ -58,7 +67,8 @@ async function enrichBalances(
         address: balance.tokenAddress,
         tokenId: balance.tokenId ?? null
       }))
-    }
+    },
+    include: [{ model: ContractInfo, as: 'contractInfo' }]
   })
 
   // add tokens that have been indexed but that have not had their metadata extracted, into the queue for extraction by the tokenInfoServer.
@@ -72,12 +82,15 @@ async function enrichBalances(
         )
     )
 
-    await queueTokenInfoJobs(
-      missingTokens.map(missingToken => ({
-        tokenAddress: missingToken.tokenAddress,
-        tokenId: missingToken.tokenId
-      }))
-    )
+    const jobDetails: (
+      | IContractInfoJobDetailsByTokenAddress
+      | ITokenInfoJobDetails
+    )[] = missingTokens.map(missingToken => ({
+      tokenAddress: missingToken.tokenAddress,
+      tokenId: missingToken.tokenId
+    }))
+    await queueContractInfoByTokenAddressJobs(jobDetails)
+    await queueTokenInfoJobs(jobDetails)
   }
 
   return balances.map(balance => ({

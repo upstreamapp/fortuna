@@ -1,21 +1,17 @@
 import differenceInDays from 'date-fns/differenceInDays'
-import { Contract, BigNumber as BN } from 'ethers'
-import knownContracts from '../common/knownContracts'
-import { TokenInfo } from '../models/TokenInfo/TokenInfo'
-import { getCorrectTokenUrlsByExtension } from '../utils/tokenInfoHelper'
+import { Contract } from 'ethers'
 import { TOKEN_INFO_MAX_AGE_IN_DAYS } from './constants'
 import fetchRemoteMetadata from './fetchRemoteMetadata'
-import getContractSpec from './getContractSpec'
 import { getEthClient } from './getEthClient'
 import Logger from './logger'
 import safeCall from './safeCall'
 import stats from './stats'
 import substituteTokenID from './substituteTokenID'
+import { ContractInfo } from '@models/ContractInfo/ContractInfo'
+import { TokenInfo } from '@models/TokenInfo/TokenInfo'
+import { getCorrectTokenUrlsByExtension } from '@utils/tokenInfoHelper'
 
 const abi = [
-  'function name() view returns (string)',
-  'function symbol() view returns (string)',
-  'function decimals() view returns (uint8)',
   'function tokenURI(uint256 _tokenId) external view returns (string)',
   'function uri(uint256 _id) external view returns (string memory)'
 ]
@@ -26,7 +22,7 @@ const logger = Logger(module)
  * Update, or add, a token's metadata into the `TokenInfo` table.
  *
  * @remarks
- * This function not only gets metada from the contract in the blockchain itself, but also externally hosted metadata if there's a `tokenURI` present.
+ * This function not only gets metadata from the contract in the blockchain itself, but also externally hosted metadata if there's a `tokenURI` present.
  *
  * @param {tokenAddress} tokenAddress - The address of the token.
  * @param {tokenId} tokenId - The token's Id, if it exists.
@@ -39,13 +35,24 @@ async function updateTokenInfo(
 ): Promise<void> {
   const startTime = Date.now()
   stats.increment('update_token_called')
+  const address = tokenAddress.toLowerCase()
 
   try {
+    const [contractInfo] = await ContractInfo.findOrCreate({
+      where: {
+        address
+      }
+    })
     const [token, created] = await TokenInfo.findOrCreate({
       where: {
-        address: tokenAddress.toLowerCase(),
+        address,
         // coalesce to null, since `undefined` isn't a valid sequelize value
         tokenId: tokenId ?? null
+      },
+      defaults: {
+        address,
+        tokenId: tokenId ?? null,
+        contractInfoId: contractInfo.id
       }
     })
 
@@ -59,29 +66,15 @@ async function updateTokenInfo(
 
     const client = await getEthClient()
     const contract = new Contract(tokenAddress, abi, client)
-    const [contractName, symbol, decimals, tokenURI, uri] = await Promise.all([
-      safeCall<string>(contract, 'name'),
-      safeCall<string>(contract, 'symbol'),
-      safeCall<BN>(contract, 'decimals'),
+    const [tokenURI, uri] = await Promise.all([
       safeCall<string>(contract, 'tokenURI', tokenId),
       safeCall<string>(contract, 'uri', tokenId)
     ])
 
-    token.contractName =
-      contractName || token.contractName || knownContracts[tokenAddress]?.name
-    token.symbol =
-      symbol || token.symbol || knownContracts[tokenAddress]?.symbol
-    token.decimals =
-      (decimals ? +decimals.toString() : token.decimals) ||
-      knownContracts[tokenAddress]?.decimals
     token.tokenUri = substituteTokenID(
       tokenURI || uri || token.tokenUri,
       tokenId
     )
-
-    if (!token.tokenType) {
-      token.tokenType = await getContractSpec(token.address)
-    }
 
     if (token.tokenUri) {
       const metadata = await fetchRemoteMetadata(token.tokenUri)
@@ -101,6 +94,8 @@ async function updateTokenInfo(
         token.animationUrl = correctUrlData.animationUrl
       }
     }
+
+    token.contractInfoId = contractInfo.id
 
     await token.save()
     stats.histogram('update_token_finished', Date.now() - startTime)

@@ -1,7 +1,7 @@
 import Bluebird from 'bluebird'
 import { chunk } from 'lodash'
 import { format } from 'node-pg-format'
-import { TokenType } from '../@types'
+import { ProcessingGoal, TokenType } from '../@types'
 import { abi } from '../common/abi'
 import updateHighestBlock from '../db/operations/statusTable/updateHighestBlock'
 import updateSyncing from '../db/operations/statusTable/updateSyncing'
@@ -17,13 +17,14 @@ import { getEthClient } from './getEthClient'
 import getLogs from './getLogs'
 import Logger from './logger'
 import parseLog from './parseLog'
-import queueTokenInfoJobs from './queueTokenInfoJobs'
+import {
+  queueContractInfoByTokenAddressJobs,
+  queueUpdateExistingContractInfoByBlockJobs,
+  IContractInfoJobDetailsByTokenAddress,
+  IContractInfoJobDetailsByBlock
+} from './queueContractInfoJobs'
+import queueTokenInfoJobs, { ITokenInfoJobDetails } from './queueTokenInfoJobs'
 import stats from './stats'
-
-export enum ProcessingGoal {
-  BACKFILL,
-  REALTIME
-}
 
 type FormattedTransaction = {
   tokenType: TokenType
@@ -66,10 +67,12 @@ export default async function processBlocks(
   await updateSyncing(true)
 
   try {
-    while (fromBlock <= toBlock) {
-      const displayFrom = fromBlock
+    let fromBlockStart = fromBlock
+
+    while (fromBlockStart <= toBlock) {
+      const displayFrom = fromBlockStart
       const displayTo =
-        fromBlock + parallelQueries * batch + parallelQueries - 1
+        fromBlockStart + parallelQueries * batch + parallelQueries - 1
 
       await updateSyncingBlocks([displayFrom, displayTo])
 
@@ -78,8 +81,8 @@ export default async function processBlocks(
       // fetch transaction logs and parallelizing the queries to spread the load
       const logs = Array.from(Array(parallelQueries).keys()).map(() => {
         // batch each query by a certain number of blocks
-        const logPromises = getLogs(fromBlock, fromBlock + batch)
-        fromBlock = fromBlock + batch + 1
+        const logPromises = getLogs(fromBlockStart, fromBlockStart + batch)
+        fromBlockStart = fromBlockStart + batch + 1
         return logPromises
       })
 
@@ -146,12 +149,17 @@ export default async function processBlocks(
       )
 
       // queue each token that has been transferred so that the tokenInfoServer can extract their metadata.
-      await queueTokenInfoJobs(
-        formattedTransactions.map(tx => ({
-          tokenAddress: tx.address,
-          tokenId: tx.tokenId
-        }))
-      )
+
+      const tokenContractJobDetails: Array<
+        IContractInfoJobDetailsByTokenAddress | ITokenInfoJobDetails
+      > = formattedTransactions.map(tx => ({
+        tokenAddress: tx.address,
+        tokenId: tx.tokenId,
+        transferBlockNumber: tx.blockNumber,
+        goal
+      }))
+      await queueContractInfoByTokenAddressJobs(tokenContractJobDetails)
+      await queueTokenInfoJobs(tokenContractJobDetails)
 
       stats.gauge(`insert_batch_size`, formattedTransactions.length)
 
@@ -187,4 +195,18 @@ export default async function processBlocks(
 
     throw err
   }
+
+  if (goalIsBackfill) {
+    return
+  }
+
+  // Update existing ERC20, ERC721, ERC1155 contracts on any new block that might also not be transfer events
+  const blockContractJobDetails: IContractInfoJobDetailsByBlock[] = []
+  for (let block = fromBlock; block <= toBlock; block++) {
+    blockContractJobDetails.push({
+      blockNumber: block,
+      goal
+    })
+  }
+  await queueUpdateExistingContractInfoByBlockJobs(blockContractJobDetails)
 }
