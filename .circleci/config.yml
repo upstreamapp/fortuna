@@ -257,7 +257,7 @@ commands:
           name: Build node app
           command: npm run build
 
-  run-tests-and-upload-timing:
+  run-tests-and-upload-timings:
     description: We will run the tests (in parrallel) and upload the timing results from jest-junit
     steps:
       - setup-doppler
@@ -408,7 +408,7 @@ jobs:
       - attach_workspace:
           at: .
       - checkout-deploy-branch
-      - run-tests-and-upload-timing
+      - run-tests-and-upload-timings
 
   #------------
   build-and-push-image:
