@@ -44,3 +44,11 @@ export const checkIfConnected = async () => {
 export const closeConnections = async () => {
   await dbConnection.close()
 }
+
+export const checkIfProperDBIsBeingUsed = () => {
+  if (!DATABASE_CONNECTION_STRING.includes('prod')) {
+    return
+  }
+
+  throw new Error('Not allowed connect to prod DB')
+}

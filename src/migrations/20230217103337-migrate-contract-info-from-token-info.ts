@@ -83,6 +83,7 @@ const migration: IMigration = {
               "contractInfoId" IS NULL);
           _batch_size int = 100000;
         BEGIN
+          IF _max_id > 0 AND _id <> _max_id THEN
           LOOP
             RAISE NOTICE 'updating IDs from % to %', _id, _id + _batch_size;
             UPDATE
@@ -102,6 +103,7 @@ const migration: IMigration = {
               EXIT;
             END IF;
           END LOOP;
+          END IF;
         END;
         $procedure$`,
       { raw: true }

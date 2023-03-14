@@ -1,4 +1,4 @@
-import { getCorrectTokenUrlsByExtension } from './tokenInfoHelper'
+import { getCorrectTokenUrlsByExtension } from '../tokenInfoHelper'
 
 describe('tokenInfoHelper', () => {
   describe('getCorrectTokenUrlsByExtension mucky data tests', () => {

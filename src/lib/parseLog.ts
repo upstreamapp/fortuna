@@ -14,7 +14,7 @@ type ParsedLogArgs = {
   values?: string[]
 }
 
-type ParsedLog = {
+export type ParsedLog = {
   name: string
   address: string
   blockNumber: number
