@@ -205,14 +205,15 @@ async function createNewContractInfoRecords(
   await Bluebird.Promise.mapSeries(
     chunk(
       uniqBy(tokens, token => token.tokenAddress).map(token => [
-        token.tokenAddress
+        token.tokenAddress,
+        new Date()
       ]),
       1000
     ),
     tokenChunk =>
       sequelize.query(
         format(
-          `INSERT INTO "ContractInfo" ("address") VALUES %L ON CONFLICT DO NOTHING;`,
+          `INSERT INTO "ContractInfo" ("address","updatedAt") VALUES %L ON CONFLICT DO NOTHING;`,
           tokenChunk
         )
       )

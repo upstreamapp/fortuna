@@ -73,7 +73,7 @@ async function getLastContractInfoId() {
 
 export async function queueAllContractInfoRecordsForBackfill() {
   let current = 1
-  const limit = 50000
+  const limit = 10000
   let maxId = await getLastContractInfoId()
   while (current <= maxId) {
     const contracts = await ContractInfo.findAll({
