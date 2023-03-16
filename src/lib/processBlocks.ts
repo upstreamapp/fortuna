@@ -26,7 +26,7 @@ import {
 import queueTokenInfoJobs, { ITokenInfoJobDetails } from './queueTokenInfoJobs'
 import stats from './stats'
 
-type FormattedTransaction = {
+export type FormattedTransaction = {
   tokenType: TokenType
   address: string
   from: string
@@ -197,7 +197,7 @@ export default async function processBlocks(
   await queueUpdateExistingContractInfoByBlockJobs(blockContractJobDetails)
 }
 
-async function createNewContractInfoRecords(
+export async function createNewContractInfoRecords(
   tokens: { tokenAddress: string }[]
 ) {
   const dateStart = Date.now()
@@ -222,7 +222,7 @@ async function createNewContractInfoRecords(
   stats.histogram(`submit_contractInfo_transactions_to_db`, dateEndDif)
 }
 
-async function createTokenTransferRecords(
+export async function createTokenTransferRecords(
   formattedTransactions: FormattedTransaction[]
 ) {
   const dateStart = Date.now()

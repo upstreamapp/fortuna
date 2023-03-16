@@ -1,13 +1,15 @@
+import { faker } from '@faker-js/faker'
 import { ethers } from 'ethers'
 import { ProcessingGoal, SyncingState } from '../../@types'
 import getStatus from '../../db/operations/statusTable/getStatus'
 import updateSyncingState from '../../db/operations/statusTable/updateSyncingState'
+import { ContractInfo } from '../../models'
 import { mockCreateLog } from '../../utils/__tests__/generators/log'
 import mockCreateStatus from '../../utils/__tests__/generators/status'
 import { handleDatabaseConnections } from '../../utils/__tests__/utils'
 import { getEthClient } from '../getEthClient'
 import getLogs from '../getLogs'
-import processBlocks from '../processBlocks'
+import processBlocks, { createNewContractInfoRecords } from '../processBlocks'
 
 jest.mock('../getEthClient')
 jest.mock('../getLogs')
@@ -65,5 +67,26 @@ describe('processBlocks', () => {
     expect(status2?.syncing).toEqual(true)
     expect(status2?.highestBlock).toEqual(2)
     expect(status2?.syncingState).toEqual('REALTIME')
+  })
+
+  describe('createNewContractInfoRecords', () => {
+    const addresses = [
+      { tokenAddress: faker.random.words() },
+      { tokenAddress: faker.random.words() }
+    ]
+
+    it('should create contractInfoRecords', async () => {
+      await createNewContractInfoRecords(addresses)
+
+      const res = await ContractInfo.findAll()
+      expect(res.length).toEqual(2)
+
+      expect(res).toEqual(
+        expect.objectContaining([
+          expect.objectContaining({ address: addresses[0].tokenAddress }),
+          expect.objectContaining({ address: addresses[1].tokenAddress })
+        ])
+      )
+    })
   })
 })

@@ -27,7 +27,7 @@ const coreCount = cpus().length
 export function isContractInfoJobLatestBlockType(
   tokens: IContractInfoJobDetailsByTokenAddress | IContractInfoJobDetailsByBlock
 ): tokens is IContractInfoJobDetailsByBlock {
-  return !!(tokens as IContractInfoJobDetailsByBlock).blockNumber
+  return (tokens as IContractInfoJobDetailsByBlock).blockNumber !== undefined
 }
 
 /**
