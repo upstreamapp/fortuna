@@ -4,7 +4,7 @@ volumes:
   database: {}
 
 services:
-  database:
+  test-database:
     image: postgres:latest
     volumes:
       - database:/var/lib/postgresql

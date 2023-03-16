@@ -95,11 +95,12 @@
       "type": "node",
       "request": "launch",
       "name": "jest-test-current-file",
+      "preLaunchTask": "run-jest-test-setup",
       "runtimeExecutable": "doppler",
       "runtimeArgs": [
         "run",
         "-c",
-        "dev",
+        "test",
         "--",
         "${workspaceFolder}/node_modules/.bin/jest",
         "--runTestsByPath",
@@ -111,6 +112,9 @@
         "--runInBand",
         "--detectOpenHandles"
       ],
+      "env": {
+        "NODE_ENV": "test"
+      },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"
     }
