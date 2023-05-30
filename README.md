@@ -136,7 +136,7 @@ Supported queries:
   }
   ```
 
-- `POST /totals`
+- `POST /holders`
   Submit a list of contracts you would like to retrieve the number of token holders for.
   | Parameter | Format | Description |
   | --- | ----------- | -------- |

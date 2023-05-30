@@ -5,7 +5,7 @@ export interface IBalancesRequest {
   refreshMissing?: boolean
 }
 
-export interface ITotalsRequest {
+export interface IHoldersCountRequest {
   contracts: string[]
 }
 
@@ -21,7 +21,7 @@ export interface IBalance {
   tokenId?: string
 }
 
-export interface ITotal {
+export interface IHoldersCount {
   tokenAddress: string
   holders: string
 }
@@ -53,7 +53,7 @@ export interface IEnrichedBalance extends IBalance {
   token: Maybe<ITokenInfo>
 }
 
-export type IResponse = IBalance[] | IEnrichedBalance[] | ITotal[]
+export type IResponse = IBalance[] | IEnrichedBalance[] | IHoldersCount[]
 
 export interface IGetQuery {
   wallets?: string[]

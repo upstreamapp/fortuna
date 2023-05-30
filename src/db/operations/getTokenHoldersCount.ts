@@ -1,6 +1,6 @@
-import { QueryTypes, ITotal, ITotalsRequest } from '../../@types'
+import { QueryTypes, IHoldersCount, IHoldersCountRequest } from '../../@types'
 import { sequelize } from '../../models'
-import { getTotalsForContracts } from '../../models/queries'
+import { getTokenHoldersCountForContracts } from '../../models/queries'
 
 /**
  * Get the number of token holders for the passed in contract addresses.
@@ -9,12 +9,12 @@ import { getTotalsForContracts } from '../../models/queries'
  *
  * @returns {Promise<ITotal[]>} Promise<ITotal[]> A promise that resolves to an array of holders.
  */
-export default async function getTotals({
+export default async function getTokenHoldersCount({
   contracts
-}: ITotalsRequest): Promise<ITotal[]> {
-  const query = getTotalsForContracts
+}: IHoldersCountRequest): Promise<IHoldersCount[]> {
+  const query = getTokenHoldersCountForContracts
 
-  return sequelize.query<ITotal>(query, {
+  return sequelize.query<IHoldersCount>(query, {
     replacements: {
       contracts
     },

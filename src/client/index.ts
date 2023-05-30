@@ -6,8 +6,8 @@ import {
   EthNetwork,
   IBalance,
   IEnrichedBalance,
-  ITotal,
-  ITotalsRequest
+  IHoldersCount,
+  IHoldersCountRequest
 } from '../@types'
 export * from '../@types'
 
@@ -33,7 +33,7 @@ export interface IGetBalances extends IGetQuery {
   refreshMissing?: boolean
 }
 
-export interface IGetTotals extends ITotalsRequest {
+export interface IGetHoldersCount extends IHoldersCountRequest {
   network: EthNetwork
 }
 
@@ -109,11 +109,13 @@ export class FortunaClient {
     })
   }
 
-  public async getTotals(options: IGetTotals): Promise<AxiosResponse<ITotal[]>>
-  public async getTotals({ network, contracts }: IGetTotals) {
+  public async getTokenHoldersCount(
+    options: IGetHoldersCount
+  ): Promise<AxiosResponse<IHoldersCount[]>>
+  public async getTokenHoldersCount({ network, contracts }: IGetHoldersCount) {
     const apiString = this.getApiUrl(network)
 
-    return this.axiosClient.post<IResponse>(`${apiString}/totals`, {
+    return this.axiosClient.post<IResponse>(`${apiString}/holders`, {
       contracts
     })
   }
