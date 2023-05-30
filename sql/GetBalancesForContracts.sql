@@ -24,7 +24,12 @@ FROM
   ) AS "transfers"
 WHERE
   "tokenAddress" IN (:contracts)
-  AND "tokenAddress" NOT IN (SELECT "address" FROM "ContractSpam")
+  AND "tokenAddress" NOT IN (
+    SELECT
+      "address"
+    FROM
+      "ContractSpam"
+  )
 GROUP BY
   "walletAddress",
   "tokenAddress",

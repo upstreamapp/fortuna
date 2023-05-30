@@ -6,9 +6,10 @@ import './lib/doom'
 import { json } from 'body-parser'
 import express from 'express'
 import { isArray } from 'lodash'
-import { IResponse, IParams, IBalancesRequest } from './@types'
+import { IResponse, IParams, IBalancesRequest, ITotalsRequest } from './@types'
 import enrichBalances from './db/operations/enrichBalances'
 import getBalances from './db/operations/getBalances'
+import getTotals from './db/operations/getTotals'
 import { DEFAULT_QUERYING_PORT, QUERYING_PORT } from './lib/constants'
 import errorHandler from './lib/errorHandler'
 import { isValidEthAddress } from './lib/isValidEthAddress'
@@ -95,6 +96,29 @@ app.post<{}, IResponse, IBalancesRequest, IParams>(
     return res.json(enrichedBalances)
   }
 )
+
+app.post<{}, IResponse, ITotalsRequest, {}>('/totals', async (req, res) => {
+  if (req.body.contracts && !isArray(req.body.contracts)) {
+    throw new ReportableError('`contracts` key must be an array')
+  }
+
+  const contracts = req.body.contracts
+    ? req.body.contracts.map(address => {
+        if (!isValidEthAddress(address)) {
+          throw new ReportableError(`Invalid contract address: ${address}`)
+        }
+        return address.toLowerCase()
+      })
+    : undefined
+
+  if (!contracts || contracts.length === 0) {
+    throw new ReportableError(`contracts must be specified`)
+  }
+
+  const totals = await getTotals({ contracts })
+
+  return res.json(totals)
+})
 
 app.use(errorHandler)
 

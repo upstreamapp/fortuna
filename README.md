@@ -136,6 +136,27 @@ Supported queries:
   }
   ```
 
+- `POST /totals`
+  Submit a list of contracts you would like to retrieve the number of token holders for.
+  | Parameter | Format | Description |
+  | --- | ----------- | -------- |
+  | **contracts** | _string[]_ | The addresses of the Ethereum/Goerli contracts
+
+  - Response (example)
+
+  ```
+  [
+    {
+        "tokenAddress": "0x26badf693f2b103b021c670c852262b379bbbe8a",
+        "holders": "3526"
+    },
+    {
+        "tokenAddress": "0xba98c7d6b25309ff097e88d24400c0ebc4d68e3a",
+        "holders": "1276"
+    }
+  ]
+  ```
+
 ### Token Info Server
 
 The token info server is responsible for consuming a queue of all the tokens that must have their metadata extracted. Tokens make their way into this queue through the monitoring or querying server. It is possible that, at any time, some tokens have their metadata updated, and to ensure that metadata is kept somewhat fresh, Fortuna refreshes a token's metadata every time that token is transferred and however many days is listed under `TOKEN_INFO_MAX_AGE_IN_DAYS` has gone by since the token was last updated.

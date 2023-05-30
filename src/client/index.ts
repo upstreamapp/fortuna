@@ -5,7 +5,9 @@ import {
   IResponse,
   EthNetwork,
   IBalance,
-  IEnrichedBalance
+  IEnrichedBalance,
+  ITotal,
+  ITotalsRequest
 } from '../@types'
 export * from '../@types'
 
@@ -29,6 +31,10 @@ export interface IGetBalances extends IGetQuery {
   network: EthNetwork
   enrich?: boolean
   refreshMissing?: boolean
+}
+
+export interface IGetTotals extends ITotalsRequest {
+  network: EthNetwork
 }
 
 export class FortunaClient {
@@ -100,6 +106,15 @@ export class FortunaClient {
       wallets,
       enrich,
       refreshMissing
+    })
+  }
+
+  public async getTotals(options: IGetTotals): Promise<AxiosResponse<ITotal[]>>
+  public async getTotals({ network, contracts }: IGetTotals) {
+    const apiString = this.getApiUrl(network)
+
+    return this.axiosClient.post<IResponse>(`${apiString}/totals`, {
+      contracts
     })
   }
 
