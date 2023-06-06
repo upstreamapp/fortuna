@@ -12,9 +12,7 @@ import { getTokenHoldersCountForContracts } from '../../models/queries'
 export default async function getTokenHoldersCount({
   contracts
 }: IHoldersCountRequest): Promise<IHoldersCount[]> {
-  const query = getTokenHoldersCountForContracts
-
-  return sequelize.query<IHoldersCount>(query, {
+  return sequelize.query<IHoldersCount>(getTokenHoldersCountForContracts, {
     replacements: {
       contracts
     },
