@@ -5,7 +5,9 @@ import {
   IResponse,
   EthNetwork,
   IBalance,
-  IEnrichedBalance
+  IEnrichedBalance,
+  IHoldersCount,
+  IHoldersCountRequest
 } from '../@types'
 export * from '../@types'
 
@@ -29,6 +31,10 @@ export interface IGetBalances extends IGetQuery {
   network: EthNetwork
   enrich?: boolean
   refreshMissing?: boolean
+}
+
+export interface IGetHoldersCount extends IHoldersCountRequest {
+  network: EthNetwork
 }
 
 export class FortunaClient {
@@ -100,6 +106,17 @@ export class FortunaClient {
       wallets,
       enrich,
       refreshMissing
+    })
+  }
+
+  public async getTokenHoldersCount(
+    options: IGetHoldersCount
+  ): Promise<AxiosResponse<IHoldersCount[]>>
+  public async getTokenHoldersCount({ network, contracts }: IGetHoldersCount) {
+    const apiString = this.getApiUrl(network)
+
+    return this.axiosClient.post<IResponse>(`${apiString}/holders`, {
+      contracts
     })
   }
 

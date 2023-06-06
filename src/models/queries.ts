@@ -29,3 +29,7 @@ export const getBalancesForContracts: string = loadSqlFile(
 export const getBalancesForWalletsAndContracts: string = loadSqlFile(
   'GetBalancesForWalletsAndContracts'
 )
+
+export const getTokenHoldersCountForContracts: string = loadSqlFile(
+  'GetTokenHoldersCountForContracts'
+)
