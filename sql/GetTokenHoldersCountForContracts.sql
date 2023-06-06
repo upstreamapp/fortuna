@@ -1,5 +1,5 @@
 SELECT
-  DISTINCT t."tokenAddress" AS "tokenAddress",
+  t."tokenAddress" AS "tokenAddress",
   COUNT(t."tokenAddress") AS "holders"
 FROM
   (
