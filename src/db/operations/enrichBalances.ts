@@ -40,7 +40,8 @@ function tokenInfoMapper(tokenInfo: Maybe<TokenInfo>): Maybe<ITokenInfo> {
       imageData: tokenInfo.imageData,
       externalUrl: tokenInfo.externalUrl,
       animationUrl: tokenInfo.animationUrl,
-      youtubeUrl: tokenInfo.youtubeUrl
+      youtubeUrl: tokenInfo.youtubeUrl,
+      tokenUri: tokenInfo.tokenUri
     },
     lastUpdated: tokenInfo.updatedAt
   }

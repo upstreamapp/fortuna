@@ -1,6 +1,6 @@
 {
   "name": "@upstreamapp/fortuna",
-  "version": "0.0.37-0",
+  "version": "0.0.39-0",
   "description": "Your best source of tokens in an address",
   "main": "./client/index.js",
   "types": "./client/index.d.ts",

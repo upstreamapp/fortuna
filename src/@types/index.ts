@@ -45,6 +45,7 @@ export interface ITokenInfo {
     externalUrl: Maybe<string>
     animationUrl: Maybe<string>
     youtubeUrl: Maybe<string>
+    tokenUri: Maybe<string>
   }
   lastUpdated: Date
 }
