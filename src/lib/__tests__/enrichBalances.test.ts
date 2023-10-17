@@ -150,7 +150,8 @@ describe('enrichBalances', () => {
           imageData: null,
           externalUrl: null,
           animationUrl: null,
-          youtubeUrl: null
+          youtubeUrl: null,
+          tokenUri: tokenInfo1.tokenUri
         },
         lastUpdated: tokenInfo1.updatedAt
       })
@@ -177,7 +178,8 @@ describe('enrichBalances', () => {
           imageData: null,
           externalUrl: null,
           animationUrl: null,
-          youtubeUrl: null
+          youtubeUrl: null,
+          tokenUri: tokenInfo2.tokenUri
         },
         lastUpdated: tokenInfo2.updatedAt
       })
@@ -204,7 +206,8 @@ describe('enrichBalances', () => {
           imageData: null,
           externalUrl: null,
           animationUrl: null,
-          youtubeUrl: null
+          youtubeUrl: null,
+          tokenUri: tokenInfo3.tokenUri
         },
         lastUpdated: tokenInfo3.updatedAt
       })
@@ -231,7 +234,8 @@ describe('enrichBalances', () => {
           imageData: null,
           externalUrl: null,
           animationUrl: null,
-          youtubeUrl: null
+          youtubeUrl: null,
+          tokenUri: tokenInfo4.tokenUri
         },
         lastUpdated: tokenInfo4.updatedAt
       })
