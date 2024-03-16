@@ -24,7 +24,8 @@ export async function getEthClient(): Promise<ethers.providers.JsonRpcProvider> 
     const client = new ethers.providers.JsonRpcProvider(
       network === EthNetwork.MAINNET
         ? (MAINNET_RPC_PROVIDER_URL as string)
-        : (GOERLI_RPC_PROVIDER_URL as string)
+        : (GOERLI_RPC_PROVIDER_URL as string),
+      network === EthNetwork.MAINNET ? 0x1 : 0x5
     )
 
     // if the provider url is not correct or a connection is unable to be made for whatever reason, it will hang `.ready`.
