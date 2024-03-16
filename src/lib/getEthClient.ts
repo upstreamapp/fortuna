@@ -6,7 +6,7 @@ import {
   MAINNET_RPC_PROVIDER_URL
 } from './constants'
 
-const ethClientByNetwork: KVMap<ethers.providers.JsonRpcProvider> = {}
+const ethClientByNetwork: KVMap<ethers.providers.StaticJsonRpcProvider> = {}
 
 export const network =
   ETH_NETWORK === 'goerli' ? EthNetwork.GOERLI : EthNetwork.MAINNET
@@ -17,11 +17,11 @@ export const network =
  * @remarks
  * This function allows for the reuse of a client that has already been instantiated so that resources can be preserved and operations can be carried out more efficiently.
  *
- * @returns {Promise<ethers.providers.JsonRpcProvider>} `Promise<ethers.providers.JsonRpcProvider>` - If the correct matching environment variables are present on application start, i.e. ETH_NETWORK, and/or MAINNET_RPC_PROVIDER_URL or GOERLI_RPC_PROVIDER_URL.
+ * @returns {Promise<ethers.providers.StaticJsonRpcProvider>} `Promise<ethers.providers.StaticJsonRpcProvider>` - If the correct matching environment variables are present on application start, i.e. ETH_NETWORK, and/or MAINNET_RPC_PROVIDER_URL or GOERLI_RPC_PROVIDER_URL.
  */
-export async function getEthClient(): Promise<ethers.providers.JsonRpcProvider> {
+export async function getEthClient(): Promise<ethers.providers.StaticJsonRpcProvider> {
   if (!ethClientByNetwork[network]) {
-    const client = new ethers.providers.JsonRpcProvider(
+    const client = new ethers.providers.StaticJsonRpcProvider(
       network === EthNetwork.MAINNET
         ? (MAINNET_RPC_PROVIDER_URL as string)
         : (GOERLI_RPC_PROVIDER_URL as string),
@@ -40,9 +40,9 @@ export async function getEthClient(): Promise<ethers.providers.JsonRpcProvider> 
 /**
  * Retrive all of the Eth clients that have already been created to interface with the network we're connected to.
  *
- * @returns {ethers.providers.JsonRpcProvider[]} `ethers.providers.JsonRpcProvider[]` - If there's any clients present in the ethClientByNetwork KVMap or an empty array.
+ * @returns {ethers.providers.StaticJsonRpcProvider[]} `ethers.providers.StaticJsonRpcProvider[]` - If there's any clients present in the ethClientByNetwork KVMap or an empty array.
  */
-export function getAllEthClients(): ethers.providers.JsonRpcProvider[] {
+export function getAllEthClients(): ethers.providers.StaticJsonRpcProvider[] {
   return Object.values(ethClientByNetwork)
 }
 

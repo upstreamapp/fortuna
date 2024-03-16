@@ -25,7 +25,7 @@ describe('processBlocks', () => {
     new Promise(resolve => {
       resolve({
         getBlockNumber: async () => 2
-      } as ethers.providers.JsonRpcProvider)
+      } as ethers.providers.StaticJsonRpcProvider)
     })
   )
 
